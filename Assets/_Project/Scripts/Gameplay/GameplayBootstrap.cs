@@ -1,6 +1,7 @@
 using ProjectGatefront.Core;
 using ProjectGatefront.Data;
 using ProjectGatefront.Gameplay.Player;
+using ProjectGatefront.Gameplay.Squad;
 using UnityEngine;
 
 namespace ProjectGatefront.Gameplay
@@ -12,6 +13,8 @@ namespace ProjectGatefront.Gameplay
         [SerializeField] private PlayerController playerController;
         [SerializeField] private RunnerCameraController runnerCamera;
         [SerializeField] private Transform cameraTarget;
+        [SerializeField] private SquadConfig squadConfig;
+        [SerializeField] private SquadController squadController;
         [SerializeField] private bool movementEnabledOnStart = true;
 
         public bool IsInitialized { get; private set; }
@@ -33,6 +36,14 @@ namespace ProjectGatefront.Gameplay
             cameraTarget = target;
         }
 
+        public void ConfigureSquad(
+            SquadConfig config,
+            SquadController controller)
+        {
+            squadConfig = config;
+            squadController = controller;
+        }
+
         public void Initialize()
         {
             if (IsInitialized)
@@ -43,7 +54,9 @@ namespace ProjectGatefront.Gameplay
             if (playerConfig == null
                 || playerController == null
                 || runnerCamera == null
-                || cameraTarget == null)
+                || cameraTarget == null
+                || squadConfig == null
+                || squadController == null)
             {
                 GameLog.Error(
                     "GameplayBootstrap is missing required scene references.",
@@ -54,6 +67,7 @@ namespace ProjectGatefront.Gameplay
 
             playerController.Initialize(playerConfig, new PointerDragInputSource());
             runnerCamera.Initialize(cameraTarget);
+            squadController.Initialize();
             playerController.SetMovementEnabled(movementEnabledOnStart);
             IsInitialized = true;
         }

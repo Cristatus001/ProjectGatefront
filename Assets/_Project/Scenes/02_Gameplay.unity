@@ -2758,6 +2758,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 28ef04ff73cd96342b1cbc47e316b1bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: ProjectGatefront.Gameplay::ProjectGatefront.Gameplay.Player.PlayerController
+--- !u!114 &1588940924 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2032680203904269336, guid: af9336f60f0a4a4439f6b2788179c7fe, type: 3}
+  m_PrefabInstance: {fileID: 1588940920}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e108ad82495cce4db20e7ade65bbbac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ProjectGatefront.Gameplay::ProjectGatefront.Gameplay.Squad.SquadController
 --- !u!1 &1618929398
 GameObject:
   m_ObjectHideFlags: 0
@@ -3183,6 +3194,8 @@ MonoBehaviour:
   playerController: {fileID: 1588940923}
   runnerCamera: {fileID: 1378110488}
   cameraTarget: {fileID: 1588940921}
+  squadConfig: {fileID: 11400000, guid: 9958ecb8e416c394d84f55e7902e4a15, type: 2}
+  squadController: {fileID: 1588940924}
   movementEnabledOnStart: 1
 --- !u!4 &1748461933
 Transform:

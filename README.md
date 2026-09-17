@@ -2,11 +2,13 @@
 
 Project Gatefront is an original, commercial-quality 3D action-runner in which the player commands and develops a tactical squad through compact battlefield missions. The project is designed first for browser delivery while keeping runtime systems independent from any single portal SDK.
 
-Current development stage: **PHASE 2 — Player Movement Prototype**
+Current development stage: **PHASE 3 — Squad Formation Prototype**
 
 The current prototype includes auto-run movement, resolution-independent mouse/touch
-drag controls, a smooth runner camera, and a generated prototype battlefield track.
-Advertising, analytics, portal SDK integration, and combat systems are not included.
+drag controls, a smooth runner camera, a generated prototype battlefield track,
+pooled squad spawning, tactical formations, runtime formation switching, and a
+read-only squad count API. Advertising, analytics, portal SDK integration, and
+combat systems are not included.
 
 ## Engine
 
@@ -55,6 +57,16 @@ configuration is stored in Assets/_Project/Data/Configs/PlayerConfig.asset.
 The Phase 2 prototype can be safely created or repaired with
 **Tools > Project Gatefront > Setup Phase 2 Gameplay Prototype**.
 
+## Squad formation prototype
+
+The visible player is the squad leader and combatant 1. Followers are pooled beneath
+SquadRoot and transition between Line, Wedge, Column, and Spread formations.
+Development controls use 1–4 to switch formations, = to add a combatant, and - to
+remove one. Holding Shift changes the add/remove amount to five.
+
+The Phase 3 prototype can be safely created or repaired with
+**Tools > Project Gatefront > Setup Phase 3 Squad Prototype**.
+
 ## Branch strategy
 
 - main — stable/release-ready work
@@ -72,3 +84,4 @@ WebGL is the primary target. Portal-specific behavior must be accessed through P
 
 See [Documentation/CODING_STANDARDS.md](Documentation/CODING_STANDARDS.md). Technical constraints are recorded in [Documentation/TECHNICAL_TARGETS.md](Documentation/TECHNICAL_TARGETS.md).
 Player movement details are recorded in [Documentation/PLAYER_MOVEMENT.md](Documentation/PLAYER_MOVEMENT.md).
+Squad architecture is recorded in [Documentation/SQUAD_SYSTEM.md](Documentation/SQUAD_SYSTEM.md).
