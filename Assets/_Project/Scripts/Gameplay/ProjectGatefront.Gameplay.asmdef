@@ -3,7 +3,8 @@
   "rootNamespace": "ProjectGatefront.Gameplay",
   "references": [
     "ProjectGatefront.Core",
-    "ProjectGatefront.Data"
+    "ProjectGatefront.Data",
+    "Unity.InputSystem"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

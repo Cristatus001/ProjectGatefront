@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 
 namespace ProjectGatefront.Editor
 {
-    public static class ProjectSetupWizard
+    public static partial class ProjectSetupWizard
     {
         private static readonly string[] RequiredFolders =
         {

@@ -23,7 +23,11 @@
 
 # Unity writes explicit empty YAML scalars with a trailing space.
 *.asset whitespace=-trailing-space
+*.anim whitespace=-trailing-space
+*.controller whitespace=-trailing-space
+*.mat whitespace=-trailing-space
 *.meta whitespace=-trailing-space
+*.prefab whitespace=-trailing-space
 *.unity whitespace=-trailing-space
 *.wlt whitespace=-trailing-space
 Assets/TutorialInfo/** whitespace=-trailing-space

@@ -2,9 +2,11 @@
 
 Project Gatefront is an original, commercial-quality 3D action-runner in which the player commands and develops a tactical squad through compact battlefield missions. The project is designed first for browser delivery while keeping runtime systems independent from any single portal SDK.
 
-Current development stage: **PHASE 1 — Foundation**
+Current development stage: **PHASE 2 — Player Movement Prototype**
 
-No gameplay, advertising, analytics, or portal SDK integration is included in this phase.
+The current prototype includes auto-run movement, resolution-independent mouse/touch
+drag controls, a smooth runner camera, and a generated prototype battlefield track.
+Advertising, analytics, portal SDK integration, and combat systems are not included.
 
 ## Engine
 
@@ -41,7 +43,17 @@ Third-party packages must remain outside Assets/_Project.
 - Assets/_Project/Scenes/01_MainMenu.unity
 - Assets/_Project/Scenes/02_Gameplay.unity
 
-The boot scene initializes persistent, game-level services. The main menu and gameplay scenes are intentionally empty foundations in Phase 1.
+The boot scene initializes persistent game-level services. The main menu remains
+an empty foundation; the gameplay scene contains the Phase 2 runner prototype.
+
+## Player movement prototype
+
+Open Assets/_Project/Scenes/02_Gameplay.unity and press Play. Hold the left mouse
+button and drag horizontally, or drag with one finger on a touchscreen. Movement
+configuration is stored in Assets/_Project/Data/Configs/PlayerConfig.asset.
+
+The Phase 2 prototype can be safely created or repaired with
+**Tools > Project Gatefront > Setup Phase 2 Gameplay Prototype**.
 
 ## Branch strategy
 
@@ -59,3 +71,4 @@ WebGL is the primary target. Portal-specific behavior must be accessed through P
 ## Conventions
 
 See [Documentation/CODING_STANDARDS.md](Documentation/CODING_STANDARDS.md). Technical constraints are recorded in [Documentation/TECHNICAL_TARGETS.md](Documentation/TECHNICAL_TARGETS.md).
+Player movement details are recorded in [Documentation/PLAYER_MOVEMENT.md](Documentation/PLAYER_MOVEMENT.md).

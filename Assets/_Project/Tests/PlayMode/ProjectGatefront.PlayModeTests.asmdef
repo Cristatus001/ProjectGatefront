@@ -1,0 +1,19 @@
+{
+  "name": "ProjectGatefront.PlayModeTests",
+  "rootNamespace": "ProjectGatefront.Tests.PlayMode",
+  "references": [
+    "ProjectGatefront.Gameplay"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

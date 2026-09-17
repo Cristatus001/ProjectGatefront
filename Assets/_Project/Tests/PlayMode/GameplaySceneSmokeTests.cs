@@ -1,0 +1,33 @@
+using System.Collections;
+using NUnit.Framework;
+using ProjectGatefront.Gameplay;
+using ProjectGatefront.Gameplay.Player;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
+
+namespace ProjectGatefront.Tests.PlayMode
+{
+    public sealed class GameplaySceneSmokeTests
+    {
+        [UnityTest]
+        public IEnumerator GameplayScene_InitializesPlayerAndCamera()
+        {
+            yield return SceneManager.LoadSceneAsync("02_Gameplay", LoadSceneMode.Single);
+            yield return null;
+
+            GameplayBootstrap bootstrap = Object.FindFirstObjectByType<GameplayBootstrap>();
+            PlayerController player = Object.FindFirstObjectByType<PlayerController>();
+            RunnerCameraController cameraController =
+                Object.FindFirstObjectByType<RunnerCameraController>();
+
+            Assert.That(bootstrap, Is.Not.Null);
+            Assert.That(player, Is.Not.Null);
+            Assert.That(cameraController, Is.Not.Null);
+            Assert.That(Camera.main, Is.Not.Null);
+            Assert.That(bootstrap.IsInitialized, Is.True);
+            Assert.That(player.IsInitialized, Is.True);
+            Assert.That(cameraController.IsInitialized, Is.True);
+        }
+    }
+}
