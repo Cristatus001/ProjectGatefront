@@ -10,6 +10,7 @@ namespace ProjectGatefront.Tests.EditMode
     {
         private GameObject squadRootObject;
         private GameObject unitTemplateObject;
+        private PlayerConfig playerConfig;
         private SquadConfig config;
         private SquadController controller;
 
@@ -22,8 +23,13 @@ namespace ProjectGatefront.Tests.EditMode
             unitTemplateObject.SetActive(false);
 
             config = ScriptableObject.CreateInstance<SquadConfig>();
+            playerConfig = ScriptableObject.CreateInstance<PlayerConfig>();
             controller = squadRootObject.AddComponent<SquadController>();
-            controller.Initialize(config, unitTemplate, squadRootObject.transform);
+            controller.Initialize(
+                config,
+                unitTemplate,
+                squadRootObject.transform,
+                playerConfig);
         }
 
         [TearDown]
@@ -31,6 +37,7 @@ namespace ProjectGatefront.Tests.EditMode
         {
             Object.DestroyImmediate(squadRootObject);
             Object.DestroyImmediate(unitTemplateObject);
+            Object.DestroyImmediate(playerConfig);
             Object.DestroyImmediate(config);
         }
 
@@ -100,6 +107,25 @@ namespace ProjectGatefront.Tests.EditMode
             controller.CopyActiveFollowersTo(followers);
 
             Assert.That(followers, Does.Contain(removedFollower));
+        }
+
+        [Test]
+        public void RefreshFormation_NearTrackEdgeAppliesGroupCorrection()
+        {
+            float leaderUsableHalfWidth =
+                ProjectGatefront.Gameplay.Player.PlayerMovementMath
+                    .CalculateUsableTrackHalfWidth(
+                        playerConfig.TrackHalfWidth,
+                        playerConfig.LeaderBoundaryRadius,
+                        playerConfig.TrackBoundaryPadding);
+            squadRootObject.transform.position = new Vector3(
+                leaderUsableHalfWidth,
+                0f,
+                0f);
+
+            controller.RefreshFormation();
+
+            Assert.That(controller.CurrentHorizontalCorrection, Is.LessThan(0f));
         }
     }
 }

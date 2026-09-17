@@ -22,3 +22,4 @@ MonoBehaviour:
   formationTransitionSpeed: 12
   unitRotationSpeed: 720
   maximumFormationHalfWidth: 3.7
+  unitBoundaryRadius: 0.21

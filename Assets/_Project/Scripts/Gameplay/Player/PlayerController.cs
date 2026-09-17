@@ -23,6 +23,19 @@ namespace ProjectGatefront.Gameplay.Player
 
         public float CurrentHorizontalPosition => transform.position.x;
 
+        public float TrackHalfWidth => config == null ? 0f : config.TrackHalfWidth;
+
+        public float TrackBoundaryPadding => config == null
+            ? 0f
+            : config.TrackBoundaryPadding;
+
+        public float LeaderUsableTrackHalfWidth => config == null
+            ? 0f
+            : PlayerMovementMath.CalculateUsableTrackHalfWidth(
+                config.TrackHalfWidth,
+                config.LeaderBoundaryRadius,
+                config.TrackBoundaryPadding);
+
         public float CurrentForwardSpeed => movementEnabled && config != null
             ? config.ForwardSpeed
             : 0f;
@@ -57,7 +70,7 @@ namespace ProjectGatefront.Gameplay.Player
                     lateralTarget,
                     CurrentDragDelta,
                     config.LateralSensitivity,
-                    config.TrackHalfWidth);
+                    LeaderUsableTrackHalfWidth);
             }
 
             float nextHorizontal = Mathf.SmoothDamp(
@@ -70,7 +83,7 @@ namespace ProjectGatefront.Gameplay.Player
 
             nextHorizontal = PlayerMovementMath.ClampHorizontal(
                 nextHorizontal,
-                config.TrackHalfWidth);
+                LeaderUsableTrackHalfWidth);
 
             Vector3 motion = new Vector3(
                 nextHorizontal - transform.position.x,
@@ -86,7 +99,7 @@ namespace ProjectGatefront.Gameplay.Player
             inputSource = playerInputSource ?? throw new ArgumentNullException(nameof(playerInputSource));
             lateralTarget = PlayerMovementMath.ClampHorizontal(
                 transform.position.x,
-                config.TrackHalfWidth);
+                LeaderUsableTrackHalfWidth);
             lateralVelocity = 0f;
             IsInitialized = true;
         }
@@ -117,6 +130,14 @@ namespace ProjectGatefront.Gameplay.Player
             Gizmos.DrawLine(
                 new Vector3(config.TrackHalfWidth, 0.05f, zStart),
                 new Vector3(config.TrackHalfWidth, 0.05f, zEnd));
+
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawLine(
+                new Vector3(-LeaderUsableTrackHalfWidth, 0.06f, zStart),
+                new Vector3(-LeaderUsableTrackHalfWidth, 0.06f, zEnd));
+            Gizmos.DrawLine(
+                new Vector3(LeaderUsableTrackHalfWidth, 0.06f, zStart),
+                new Vector3(LeaderUsableTrackHalfWidth, 0.06f, zEnd));
 
             Gizmos.color = Color.white;
             Gizmos.DrawLine(

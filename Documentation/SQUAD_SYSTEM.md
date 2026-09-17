@@ -44,6 +44,25 @@ All formation types clamp local X to maximumFormationHalfWidth. When the request
 row width would exceed that value, row capacity or spacing adapts instead of placing
 followers outside the track.
 
+## Track boundary containment
+
+PlayerConfig remains the single source for physical trackHalfWidth and supplies a
+small shared boundary padding. The leader clamp subtracts its approximate visual
+radius and that padding, preserving most of the available lateral range while
+keeping the visible leader inside the road.
+
+FormationCalculator continues to produce stable ideal local slots. SquadController
+caches their horizontal extents, combines them with the leader's current world X,
+and calculates one world-space X correction for the entire follower formation. The
+same correction is added to every follower target, so Y, Z, and relative spacing do
+not change. Individual soldiers are not clamped independently.
+
+The follower usable limit accounts for PF_SquadUnit's approximate visual radius and
+the shared track padding. Formation generation also caps its maximum half-width to
+the available follower space, allowing its existing row logic to handle formations
+that would otherwise be too wide. Containment is refreshed after leader movement and
+whenever formation or squad size changes.
+
 ## Pooling
 
 The pool prewarms the configured starting follower count. Removed followers are

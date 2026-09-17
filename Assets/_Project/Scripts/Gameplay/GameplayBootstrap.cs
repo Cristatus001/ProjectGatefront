@@ -67,7 +67,7 @@ namespace ProjectGatefront.Gameplay
 
             playerController.Initialize(playerConfig, new PointerDragInputSource());
             runnerCamera.Initialize(cameraTarget);
-            squadController.Initialize();
+            squadController.Initialize(playerConfig);
             playerController.SetMovementEnabled(movementEnabledOnStart);
             IsInitialized = true;
         }

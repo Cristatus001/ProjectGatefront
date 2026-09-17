@@ -32,6 +32,9 @@ namespace ProjectGatefront.Data
         [Tooltip("Maximum absolute local X coordinate for any formation slot.")]
         [SerializeField, Min(0.1f)] private float maximumFormationHalfWidth = 3.7f;
 
+        [Tooltip("Approximate follower half-width used to keep visible bodies inside the track.")]
+        [SerializeField, Min(0f)] private float unitBoundaryRadius = 0.21f;
+
         public int StartingUnitCount => startingUnitCount;
 
         public int MaxSquadSize => maxSquadSize;
@@ -49,5 +52,7 @@ namespace ProjectGatefront.Data
         public float UnitRotationSpeed => unitRotationSpeed;
 
         public float MaximumFormationHalfWidth => maximumFormationHalfWidth;
+
+        public float UnitBoundaryRadius => unitBoundaryRadius;
     }
 }

@@ -19,6 +19,12 @@ namespace ProjectGatefront.Data
         [Tooltip("Maximum absolute world X coordinate available to the player root.")]
         [SerializeField, Min(0.1f)] private float trackHalfWidth = 4.25f;
 
+        [Tooltip("Approximate leader half-width used to keep the visible body inside the track.")]
+        [SerializeField, Min(0f)] private float leaderBoundaryRadius = 0.42f;
+
+        [Tooltip("Small inset applied inside both track edges for visible body containment.")]
+        [SerializeField, Min(0f)] private float trackBoundaryPadding = 0.08f;
+
         [Tooltip("Maximum lateral speed in world units per second.")]
         [SerializeField, Min(0.1f)] private float maximumLateralSpeed = 20f;
 
@@ -31,6 +37,10 @@ namespace ProjectGatefront.Data
         public float LateralSmoothTime => lateralSmoothTime;
 
         public float TrackHalfWidth => trackHalfWidth;
+
+        public float LeaderBoundaryRadius => leaderBoundaryRadius;
+
+        public float TrackBoundaryPadding => trackBoundaryPadding;
 
         public float MaximumLateralSpeed => maximumLateralSpeed;
     }

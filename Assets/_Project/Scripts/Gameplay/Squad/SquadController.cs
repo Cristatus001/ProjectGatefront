@@ -8,6 +8,7 @@ using UnityEngine.InputSystem;
 
 namespace ProjectGatefront.Gameplay.Squad
 {
+    [DefaultExecutionOrder(100)]
     [DisallowMultipleComponent]
     public sealed class SquadController : MonoBehaviour
     {
@@ -24,6 +25,9 @@ namespace ProjectGatefront.Gameplay.Squad
         private readonly List<SquadUnit> activeFollowers = new List<SquadUnit>();
         private readonly List<FormationSlot> formationSlots = new List<FormationSlot>();
         private Stack<SquadUnit> pooledFollowers;
+        private PlayerConfig playerConfig;
+        private float idealLocalMinX;
+        private float idealLocalMaxX;
 
         public event Action<int> SquadCountChanged;
 
@@ -41,6 +45,16 @@ namespace ProjectGatefront.Gameplay.Squad
 
         public int FormationRevision { get; private set; }
 
+        public float CurrentHorizontalCorrection { get; private set; }
+
+        public float FollowerUsableTrackHalfWidth => playerConfig == null
+            || config == null
+                ? 0f
+                : FormationBoundaryMath.CalculateUsableTrackHalfWidth(
+                    playerConfig.TrackHalfWidth,
+                    config.UnitBoundaryRadius,
+                    playerConfig.TrackBoundaryPadding);
+
         public int ConfiguredStartingUnitCount => config == null
             ? 0
             : Mathf.Clamp(config.StartingUnitCount, 1, config.MaxSquadSize);
@@ -57,15 +71,16 @@ namespace ProjectGatefront.Gameplay.Squad
             formationRoot = squadFormationRoot;
         }
 
-        public void Initialize()
+        public void Initialize(PlayerConfig trackConfig)
         {
-            Initialize(config, unitPrefab, formationRoot);
+            Initialize(config, unitPrefab, formationRoot, trackConfig);
         }
 
         public void Initialize(
             SquadConfig squadConfig,
             SquadUnit squadUnitPrefab,
-            Transform squadFormationRoot)
+            Transform squadFormationRoot,
+            PlayerConfig trackConfig)
         {
             if (IsInitialized)
             {
@@ -81,6 +96,9 @@ namespace ProjectGatefront.Gameplay.Squad
             formationRoot = squadFormationRoot != null
                 ? squadFormationRoot
                 : throw new ArgumentNullException(nameof(squadFormationRoot));
+            playerConfig = trackConfig != null
+                ? trackConfig
+                : throw new ArgumentNullException(nameof(trackConfig));
 
             int maxFollowerCount = Mathf.Max(0, config.MaxSquadSize - 1);
             activeFollowers.Capacity = Mathf.Max(
@@ -238,6 +256,9 @@ namespace ProjectGatefront.Gameplay.Squad
 
         private void RebuildFormation()
         {
+            float maximumFormationHalfWidth = Mathf.Min(
+                config.MaximumFormationHalfWidth,
+                FollowerUsableTrackHalfWidth);
             FormationCalculator.Calculate(
                 currentFormation,
                 activeFollowers.Count,
@@ -245,21 +266,82 @@ namespace ProjectGatefront.Gameplay.Squad
                 config.ColumnSpacing,
                 config.SpreadSpacingMultiplier,
                 config.MaxUnitsPerRow,
-                config.MaximumFormationHalfWidth,
+                maximumFormationHalfWidth,
                 formationSlots);
+
+            CacheIdealHorizontalBounds();
 
             for (int index = 0; index < activeFollowers.Count; index++)
             {
                 activeFollowers[index].SetFormationSlot(formationSlots[index]);
             }
 
+            UpdateHorizontalContainment(true);
+
             FormationRevision++;
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private void Update()
         {
-            if (!debugControlsEnabled || !IsInitialized)
+            if (!IsInitialized)
+            {
+                return;
+            }
+
+            UpdateHorizontalContainment(false);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            HandleDevelopmentInput();
+#endif
+        }
+
+        private void CacheIdealHorizontalBounds()
+        {
+            if (formationSlots.Count == 0)
+            {
+                idealLocalMinX = 0f;
+                idealLocalMaxX = 0f;
+                return;
+            }
+
+            idealLocalMinX = formationSlots[0].LocalPosition.x;
+            idealLocalMaxX = idealLocalMinX;
+
+            for (int index = 1; index < formationSlots.Count; index++)
+            {
+                float localX = formationSlots[index].LocalPosition.x;
+                idealLocalMinX = Mathf.Min(idealLocalMinX, localX);
+                idealLocalMaxX = Mathf.Max(idealLocalMaxX, localX);
+            }
+        }
+
+        private void UpdateHorizontalContainment(bool force)
+        {
+            float correction = FormationBoundaryMath.CalculateHorizontalFormationCorrection(
+                activeFollowers.Count,
+                formationRoot.position.x,
+                idealLocalMinX,
+                idealLocalMaxX,
+                playerConfig.TrackHalfWidth,
+                config.UnitBoundaryRadius,
+                playerConfig.TrackBoundaryPadding);
+
+            if (!force && Mathf.Approximately(correction, CurrentHorizontalCorrection))
+            {
+                return;
+            }
+
+            CurrentHorizontalCorrection = correction;
+            for (int index = 0; index < activeFollowers.Count; index++)
+            {
+                activeFollowers[index].SetHorizontalWorldCorrection(correction);
+            }
+        }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private void HandleDevelopmentInput()
+        {
+            if (!debugControlsEnabled)
             {
                 return;
             }
@@ -340,18 +422,32 @@ namespace ProjectGatefront.Gameplay.Squad
             }
 
             Transform root = formationRoot != null ? formationRoot : transform;
-            Matrix4x4 previousMatrix = Gizmos.matrix;
-            Gizmos.matrix = root.localToWorldMatrix;
             Gizmos.color = new Color(0.15f, 0.9f, 1f, 0.9f);
 
             for (int index = 0; index < formationSlots.Count; index++)
             {
+                Vector3 slotWorldPosition = root.TransformPoint(
+                    formationSlots[index].LocalPosition);
+                slotWorldPosition.x += CurrentHorizontalCorrection;
                 Gizmos.DrawWireSphere(
-                    formationSlots[index].LocalPosition + (Vector3.up * 0.12f),
+                    slotWorldPosition + (Vector3.up * 0.12f),
                     0.16f);
             }
 
-            Gizmos.matrix = previousMatrix;
+            if (IsInitialized)
+            {
+                const float gizmoLength = 30f;
+                float zStart = root.position.z - (gizmoLength * 0.5f);
+                float zEnd = root.position.z + (gizmoLength * 0.5f);
+                float usableHalfWidth = FollowerUsableTrackHalfWidth;
+                Gizmos.color = new Color(1f, 0.25f, 0.75f, 0.9f);
+                Gizmos.DrawLine(
+                    new Vector3(-usableHalfWidth, 0.08f, zStart),
+                    new Vector3(-usableHalfWidth, 0.08f, zEnd));
+                Gizmos.DrawLine(
+                    new Vector3(usableHalfWidth, 0.08f, zStart),
+                    new Vector3(usableHalfWidth, 0.08f, zEnd));
+            }
         }
     }
 }

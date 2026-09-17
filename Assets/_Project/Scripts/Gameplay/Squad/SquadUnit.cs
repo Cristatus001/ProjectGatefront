@@ -7,6 +7,7 @@ namespace ProjectGatefront.Gameplay.Squad
     {
         private Transform formationRoot;
         private Vector3 targetLocalPosition;
+        private float horizontalWorldCorrection;
         private Vector3 smoothedWorldPosition;
         private float transitionSpeed;
         private float rotationSpeed;
@@ -24,6 +25,7 @@ namespace ProjectGatefront.Gameplay.Squad
 
             Vector3 targetWorldPosition =
                 formationRoot.TransformPoint(targetLocalPosition);
+            targetWorldPosition.x += horizontalWorldCorrection;
             smoothedWorldPosition = Vector3.MoveTowards(
                 smoothedWorldPosition,
                 targetWorldPosition,
@@ -56,10 +58,16 @@ namespace ProjectGatefront.Gameplay.Squad
             targetLocalPosition = slot.LocalPosition;
         }
 
+        public void SetHorizontalWorldCorrection(float correction)
+        {
+            horizontalWorldCorrection = correction;
+        }
+
         public void Deactivate()
         {
             SlotIndex = -1;
             formationRoot = null;
+            horizontalWorldCorrection = 0f;
             gameObject.SetActive(false);
         }
     }

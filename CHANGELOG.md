@@ -11,6 +11,7 @@
 - Added formation transitions
 - Added squad runtime debug controls
 - Added formation tests
+- Fixed squad members overflowing track boundaries near track edges
 
 ## 0.2.0-dev
 

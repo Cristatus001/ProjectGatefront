@@ -18,4 +18,6 @@ MonoBehaviour:
   lateralSensitivity: 10
   lateralSmoothTime: 0.08
   trackHalfWidth: 4.25
+  leaderBoundaryRadius: 0.42
+  trackBoundaryPadding: 0.08
   maximumLateralSpeed: 20

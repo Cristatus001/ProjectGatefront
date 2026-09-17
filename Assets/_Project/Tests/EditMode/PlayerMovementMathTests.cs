@@ -57,5 +57,13 @@ namespace ProjectGatefront.Tests.EditMode
 
             Assert.That(highSensitivity, Is.EqualTo(lowSensitivity * 2f));
         }
+
+        [Test]
+        public void CalculateUsableTrackHalfWidth_AccountsForBodyAndPadding()
+        {
+            Assert.That(
+                PlayerMovementMath.CalculateUsableTrackHalfWidth(4.25f, 0.42f, 0.08f),
+                Is.EqualTo(3.75f).Within(0.0001f));
+        }
     }
 }

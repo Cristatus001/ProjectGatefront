@@ -19,5 +19,17 @@ namespace ProjectGatefront.Gameplay.Player
             float safeHalfWidth = Mathf.Max(0f, trackHalfWidth);
             return Mathf.Clamp(horizontalPosition, -safeHalfWidth, safeHalfWidth);
         }
+
+        public static float CalculateUsableTrackHalfWidth(
+            float trackHalfWidth,
+            float bodyRadius,
+            float boundaryPadding)
+        {
+            return Mathf.Max(
+                0f,
+                trackHalfWidth
+                    - Mathf.Max(0f, bodyRadius)
+                    - Mathf.Max(0f, boundaryPadding));
+        }
     }
 }
