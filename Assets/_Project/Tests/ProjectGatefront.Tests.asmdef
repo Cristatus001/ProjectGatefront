@@ -1,0 +1,25 @@
+{
+  "name": "ProjectGatefront.Tests",
+  "rootNamespace": "ProjectGatefront.Tests",
+  "references": [
+    "ProjectGatefront.Core",
+    "ProjectGatefront.Data",
+    "ProjectGatefront.Gameplay",
+    "ProjectGatefront.Platform",
+    "ProjectGatefront.UI"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "ProjectGatefront.Gameplay",
+  "rootNamespace": "ProjectGatefront.Gameplay",
+  "references": [
+    "ProjectGatefront.Core",
+    "ProjectGatefront.Data"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

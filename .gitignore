@@ -1,0 +1,58 @@
+# Unity generated folders
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Bb]uild/
+/[Bb]uilds/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Unity generated files
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.unityproj
+*.sln
+*.slnx
+*.csproj
+*.user
+*.userprefs
+*.unitypackage
+sysinfo.txt
+
+# IDEs and editors
+/.vs/
+/.vscode/
+/.idea/
+*.suo
+*.tmp
+*.tmp.*
+*.rsuser
+*.DotSettings.user
+
+# Rider
+*.sln.iml
+
+# Operating system files
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+
+# Crash and diagnostic output
+crashlytics-build.properties
+mono_crash.*
+
+# Local build tooling
+*.apk
+*.aab
+*.app
+*.ipa
+*.unityweb
