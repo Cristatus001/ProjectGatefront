@@ -17,6 +17,8 @@ namespace ProjectGatefront.Gameplay.Player
         private IPlayerInputSource inputSource;
         private float lateralTarget;
         private float lateralVelocity;
+        private float minimumHorizontalPosition;
+        private float maximumHorizontalPosition;
         private bool movementEnabled;
 
         public bool IsInitialized { get; private set; }
@@ -29,12 +31,13 @@ namespace ProjectGatefront.Gameplay.Player
             ? 0f
             : config.TrackBoundaryPadding;
 
-        public float LeaderUsableTrackHalfWidth => config == null
+        public float DefaultUsableTrackHalfWidth => config == null
             ? 0f
-            : PlayerMovementMath.CalculateUsableTrackHalfWidth(
-                config.TrackHalfWidth,
-                config.LeaderBoundaryRadius,
-                config.TrackBoundaryPadding);
+            : Mathf.Max(0f, config.TrackHalfWidth - config.TrackBoundaryPadding);
+
+        public float MinimumHorizontalPosition => minimumHorizontalPosition;
+
+        public float MaximumHorizontalPosition => maximumHorizontalPosition;
 
         public float CombatAnchorZ => config == null ? transform.position.z : config.CombatAnchorZ;
 
@@ -68,7 +71,8 @@ namespace ProjectGatefront.Gameplay.Player
                     lateralTarget,
                     CurrentDragDelta,
                     config.LateralSensitivity,
-                    LeaderUsableTrackHalfWidth);
+                    minimumHorizontalPosition,
+                    maximumHorizontalPosition);
             }
 
             float nextHorizontal = Mathf.SmoothDamp(
@@ -81,7 +85,8 @@ namespace ProjectGatefront.Gameplay.Player
 
             nextHorizontal = PlayerMovementMath.ClampHorizontal(
                 nextHorizontal,
-                LeaderUsableTrackHalfWidth);
+                minimumHorizontalPosition,
+                maximumHorizontalPosition);
 
             Vector3 motion = new Vector3(
                 nextHorizontal - transform.position.x,
@@ -98,11 +103,53 @@ namespace ProjectGatefront.Gameplay.Player
             Vector3 anchoredPosition = transform.position;
             anchoredPosition.z = config.CombatAnchorZ;
             transform.position = anchoredPosition;
+            minimumHorizontalPosition = -DefaultUsableTrackHalfWidth;
+            maximumHorizontalPosition = DefaultUsableTrackHalfWidth;
             lateralTarget = PlayerMovementMath.ClampHorizontal(
                 transform.position.x,
-                LeaderUsableTrackHalfWidth);
+                minimumHorizontalPosition,
+                maximumHorizontalPosition);
             lateralVelocity = 0f;
             IsInitialized = true;
+        }
+
+        public void SetHorizontalMovementRange(
+            float minimumHorizontal,
+            float maximumHorizontal)
+        {
+            minimumHorizontalPosition = Mathf.Min(
+                minimumHorizontal,
+                maximumHorizontal);
+            maximumHorizontalPosition = Mathf.Max(
+                minimumHorizontal,
+                maximumHorizontal);
+            lateralTarget = PlayerMovementMath.ClampHorizontal(
+                lateralTarget,
+                minimumHorizontalPosition,
+                maximumHorizontalPosition);
+
+            float clampedPosition = PlayerMovementMath.ClampHorizontal(
+                transform.position.x,
+                minimumHorizontalPosition,
+                maximumHorizontalPosition);
+            float horizontalDelta = clampedPosition - transform.position.x;
+            if (Mathf.Abs(horizontalDelta) <= Mathf.Epsilon)
+            {
+                return;
+            }
+
+            if (characterController != null && characterController.enabled)
+            {
+                characterController.Move(new Vector3(horizontalDelta, 0f, 0f));
+            }
+            else
+            {
+                Vector3 position = transform.position;
+                position.x = clampedPosition;
+                transform.position = position;
+            }
+
+            lateralVelocity = 0f;
         }
 
         public void SetMovementEnabled(bool enabled)
@@ -134,11 +181,11 @@ namespace ProjectGatefront.Gameplay.Player
 
             Gizmos.color = Color.yellow;
             Gizmos.DrawLine(
-                new Vector3(-LeaderUsableTrackHalfWidth, 0.06f, zStart),
-                new Vector3(-LeaderUsableTrackHalfWidth, 0.06f, zEnd));
+                new Vector3(minimumHorizontalPosition, 0.06f, zStart),
+                new Vector3(minimumHorizontalPosition, 0.06f, zEnd));
             Gizmos.DrawLine(
-                new Vector3(LeaderUsableTrackHalfWidth, 0.06f, zStart),
-                new Vector3(LeaderUsableTrackHalfWidth, 0.06f, zEnd));
+                new Vector3(maximumHorizontalPosition, 0.06f, zStart),
+                new Vector3(maximumHorizontalPosition, 0.06f, zEnd));
 
             Gizmos.color = Color.white;
             Gizmos.DrawLine(

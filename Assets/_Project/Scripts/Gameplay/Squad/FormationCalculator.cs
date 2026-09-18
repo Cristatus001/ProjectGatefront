@@ -6,6 +6,22 @@ namespace ProjectGatefront.Gameplay.Squad
 {
     public static class FormationCalculator
     {
+        private const float CompactTargetAspectRatio = 1.15f;
+        private const float CompactSelectionWidthBias = 1.05f;
+
+        private readonly struct CompactCandidatePair
+        {
+            public CompactCandidatePair(Vector3 positivePosition, float score)
+            {
+                PositivePosition = positivePosition;
+                Score = score;
+            }
+
+            public Vector3 PositivePosition { get; }
+
+            public float Score { get; }
+        }
+
         public static void Calculate(
             FormationType formationType,
             int slotCount,
@@ -96,6 +112,8 @@ namespace ProjectGatefront.Gameplay.Squad
                         formationType,
                         "Unsupported formation type.");
             }
+
+            CenterSlotsAroundRoot(results, safeHalfWidth);
         }
 
         private static void CalculateCompact(
@@ -105,176 +123,143 @@ namespace ProjectGatefront.Gameplay.Squad
             float maximumHalfWidth,
             List<FormationSlot> results)
         {
-            int slotIndex = 0;
-            AddCompactPair(
-                lateralSpacing,
-                -depthSpacing * 0.15f,
-                slotCount,
-                depthSpacing,
-                maximumHalfWidth,
-                results,
-                ref slotIndex);
-            AddCompactPair(
-                lateralSpacing * 0.55f,
-                -depthSpacing * 0.9f,
-                slotCount,
-                depthSpacing,
-                maximumHalfWidth,
-                results,
-                ref slotIndex);
-            AddCompactPair(
-                lateralSpacing * 2f,
-                -depthSpacing * 0.4f,
-                slotCount,
-                depthSpacing,
-                maximumHalfWidth,
-                results,
-                ref slotIndex);
-
-            int row = 0;
-            while (slotIndex < slotCount)
+            if (slotCount == 1)
             {
-                int rowStartIndex = slotIndex;
-                float rowDepth = -(1.8f + row) * depthSpacing;
-                bool halfOffsetRow = row % 2 == 1;
-
-                if (row == 0)
-                {
-                    AddCompactSlot(
-                        0f,
-                        rowDepth,
-                        slotCount,
-                        depthSpacing,
-                        maximumHalfWidth,
-                        results,
-                        ref slotIndex);
-                }
-
-                if (!halfOffsetRow)
-                {
-                    for (int step = 1;
-                        step * lateralSpacing <= maximumHalfWidth + 0.0001f
-                            && slotIndex < slotCount;
-                        step++)
-                    {
-                        AddCompactPair(
-                            step * lateralSpacing,
-                            rowDepth,
-                            slotCount,
-                            depthSpacing,
-                            maximumHalfWidth,
-                            results,
-                            ref slotIndex);
-                    }
-                }
-                else
-                {
-                    for (int step = 0;
-                        (step + 0.5f) * lateralSpacing
-                                <= maximumHalfWidth + 0.0001f
-                            && slotIndex < slotCount;
-                        step++)
-                    {
-                        AddCompactPair(
-                            (step + 0.5f) * lateralSpacing,
-                            rowDepth,
-                            slotCount,
-                            depthSpacing,
-                            maximumHalfWidth,
-                            results,
-                            ref slotIndex);
-                    }
-                }
-
-                if (slotIndex == rowStartIndex)
-                {
-                    AddCompactSlot(
-                        0f,
-                        rowDepth,
-                        slotCount,
-                        depthSpacing,
-                        maximumHalfWidth,
-                        results,
-                        ref slotIndex);
-                }
-
-                row++;
-            }
-        }
-
-        private static void AddCompactPair(
-            float lateralOffset,
-            float baseDepth,
-            int slotCount,
-            float depthSpacing,
-            float maximumHalfWidth,
-            List<FormationSlot> results,
-            ref int slotIndex)
-        {
-            float safeOffset = Mathf.Min(
-                Mathf.Abs(lateralOffset),
-                maximumHalfWidth);
-            if (safeOffset <= 0.0001f)
-            {
-                AddCompactSlot(
-                    0f,
-                    baseDepth,
-                    slotCount,
-                    depthSpacing,
-                    maximumHalfWidth,
-                    results,
-                    ref slotIndex);
+                results.Add(new FormationSlot(0, Vector3.zero));
                 return;
             }
 
-            AddCompactSlot(
-                -safeOffset,
-                baseDepth,
-                slotCount,
-                depthSpacing,
-                maximumHalfWidth,
-                results,
-                ref slotIndex);
-            AddCompactSlot(
-                safeOffset,
-                baseDepth,
-                slotCount,
-                depthSpacing,
-                maximumHalfWidth,
-                results,
-                ref slotIndex);
+            int searchRadius = Mathf.Max(4, slotCount);
+            var candidatePairs = new List<CompactCandidatePair>(
+                searchRadius * searchRadius);
+            float halfRowOffset = lateralSpacing * 0.5f;
+            float widthBiasSquared = CompactSelectionWidthBias
+                * CompactSelectionWidthBias;
+
+            for (int row = -searchRadius; row <= searchRadius; row++)
+            {
+                float z = row * depthSpacing;
+                float rowOffset = Mathf.Abs(row) % 2 == 1
+                    ? halfRowOffset
+                    : 0f;
+
+                for (int column = -searchRadius;
+                    column <= searchRadius;
+                    column++)
+                {
+                    float x = (column * lateralSpacing) + rowOffset;
+                    if (Mathf.Abs(x) > maximumHalfWidth + 0.0001f)
+                    {
+                        continue;
+                    }
+
+                    bool isCenter = Mathf.Abs(x) <= 0.0001f
+                        && Mathf.Abs(z) <= 0.0001f;
+                    bool isCanonicalPairMember = z > 0.0001f
+                        || (Mathf.Abs(z) <= 0.0001f && x > 0.0001f);
+                    if (isCenter || !isCanonicalPairMember)
+                    {
+                        continue;
+                    }
+
+                    float score = ((x * x) / widthBiasSquared) + (z * z);
+                    candidatePairs.Add(new CompactCandidatePair(
+                        new Vector3(x, 0f, z),
+                        score));
+                }
+            }
+
+            candidatePairs.Sort(CompareCompactCandidatePairs);
+
+            var selectedPositions = new List<Vector3>(slotCount);
+            if (slotCount % 2 == 1)
+            {
+                selectedPositions.Add(Vector3.zero);
+            }
+
+            int requiredPairCount = slotCount / 2;
+            for (int pairIndex = 0;
+                pairIndex < requiredPairCount;
+                pairIndex++)
+            {
+                Vector3 positive = candidatePairs[pairIndex].PositivePosition;
+                selectedPositions.Add(-positive);
+                selectedPositions.Add(positive);
+            }
+
+            NormalizeCompactDepth(selectedPositions);
+            selectedPositions.Sort(CompareCompactPositions);
+
+            for (int index = 0; index < selectedPositions.Count; index++)
+            {
+                results.Add(new FormationSlot(index, selectedPositions[index]));
+            }
         }
 
-        private static void AddCompactSlot(
-            float x,
-            float baseDepth,
-            int slotCount,
-            float depthSpacing,
-            float maximumHalfWidth,
-            List<FormationSlot> results,
-            ref int slotIndex)
+        private static int CompareCompactCandidatePairs(
+            CompactCandidatePair first,
+            CompactCandidatePair second)
         {
-            if (slotIndex >= slotCount)
+            int scoreComparison = first.Score.CompareTo(second.Score);
+            if (scoreComparison != 0)
+            {
+                return scoreComparison;
+            }
+
+            int depthComparison = Mathf.Abs(first.PositivePosition.z).CompareTo(
+                Mathf.Abs(second.PositivePosition.z));
+            if (depthComparison != 0)
+            {
+                return depthComparison;
+            }
+
+            int zComparison = first.PositivePosition.z.CompareTo(
+                second.PositivePosition.z);
+            return zComparison != 0
+                ? zComparison
+                : first.PositivePosition.x.CompareTo(second.PositivePosition.x);
+        }
+
+        private static int CompareCompactPositions(Vector3 first, Vector3 second)
+        {
+            int radiusComparison = first.sqrMagnitude.CompareTo(second.sqrMagnitude);
+            if (radiusComparison != 0)
+            {
+                return radiusComparison;
+            }
+
+            int depthComparison = Mathf.Abs(first.z).CompareTo(Mathf.Abs(second.z));
+            if (depthComparison != 0)
+            {
+                return depthComparison;
+            }
+
+            int zComparison = first.z.CompareTo(second.z);
+            return zComparison != 0 ? zComparison : first.x.CompareTo(second.x);
+        }
+
+        private static void NormalizeCompactDepth(List<Vector3> positions)
+        {
+            CalculateBounds(
+                positions,
+                out float minimumX,
+                out float maximumX,
+                out float minimumZ,
+                out float maximumZ);
+            float width = maximumX - minimumX;
+            float depth = maximumZ - minimumZ;
+            if (width <= 0.0001f || depth <= 0.0001f)
             {
                 return;
             }
 
-            float clampedX = Mathf.Clamp(
-                x,
-                -maximumHalfWidth,
-                maximumHalfWidth);
-            float normalizedLateral = maximumHalfWidth > 0.0001f
-                ? Mathf.Abs(clampedX) / maximumHalfWidth
-                : 0f;
-            float curvedDepth = baseDepth
-                - (depthSpacing
-                    * 0.32f
-                    * normalizedLateral
-                    * normalizedLateral);
-            results.Add(new FormationSlot(
-                slotIndex,
-                new Vector3(clampedX, 0f, curvedDepth)));
-            slotIndex++;
+            float depthScale = (width / CompactTargetAspectRatio) / depth;
+            for (int index = 0; index < positions.Count; index++)
+            {
+                Vector3 position = positions[index];
+                position.z *= depthScale;
+                positions[index] = position;
+            }
         }
 
         private static void CalculateRows(
@@ -401,6 +386,72 @@ namespace ProjectGatefront.Gameplay.Squad
 
             float availableSpacing = (maximumHalfWidth * 2f) / (unitsInRow - 1);
             return Mathf.Min(columnSpacing, availableSpacing);
+        }
+
+        private static void CalculateBounds(
+            List<Vector3> positions,
+            out float minimumX,
+            out float maximumX,
+            out float minimumZ,
+            out float maximumZ)
+        {
+            Vector3 firstPosition = positions[0];
+            minimumX = firstPosition.x;
+            maximumX = firstPosition.x;
+            minimumZ = firstPosition.z;
+            maximumZ = firstPosition.z;
+
+            for (int index = 1; index < positions.Count; index++)
+            {
+                Vector3 position = positions[index];
+                minimumX = Mathf.Min(minimumX, position.x);
+                maximumX = Mathf.Max(maximumX, position.x);
+                minimumZ = Mathf.Min(minimumZ, position.z);
+                maximumZ = Mathf.Max(maximumZ, position.z);
+            }
+        }
+
+        private static void CenterSlotsAroundRoot(
+            List<FormationSlot> results,
+            float maximumHalfWidth)
+        {
+            if (results.Count == 0)
+            {
+                return;
+            }
+
+            Vector3 centroid = Vector3.zero;
+            for (int index = 0; index < results.Count; index++)
+            {
+                centroid += results[index].LocalPosition;
+            }
+
+            centroid /= results.Count;
+            float maximumCenteredX = 0f;
+            for (int index = 0; index < results.Count; index++)
+            {
+                Vector3 centeredPosition = results[index].LocalPosition - centroid;
+                centeredPosition.y = 0f;
+                results[index] = new FormationSlot(index, centeredPosition);
+                maximumCenteredX = Mathf.Max(
+                    maximumCenteredX,
+                    Mathf.Abs(centeredPosition.x));
+            }
+
+            if (maximumCenteredX <= maximumHalfWidth + 0.0001f)
+            {
+                return;
+            }
+
+            float horizontalScale = maximumCenteredX > 0.0001f
+                ? maximumHalfWidth / maximumCenteredX
+                : 0f;
+            for (int index = 0; index < results.Count; index++)
+            {
+                Vector3 position = results[index].LocalPosition;
+                position.x *= horizontalScale;
+                results[index] = new FormationSlot(index, position);
+            }
         }
 
     }

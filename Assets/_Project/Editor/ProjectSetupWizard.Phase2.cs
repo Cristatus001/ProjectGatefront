@@ -35,9 +35,6 @@ namespace ProjectGatefront.Editor
             Material groundMaterial = EnsurePrototypeMaterial(
                 "MAT_PrototypeGround",
                 new Color(0.18f, 0.23f, 0.25f));
-            Material playerMaterial = EnsurePrototypeMaterial(
-                "MAT_PrototypePlayer",
-                new Color(0.08f, 0.55f, 0.72f));
             Material boundaryMaterial = EnsurePrototypeMaterial(
                 "MAT_PrototypeBoundary",
                 new Color(0.95f, 0.48f, 0.08f));
@@ -46,7 +43,7 @@ namespace ProjectGatefront.Editor
                 new Color(0.48f, 0.52f, 0.46f));
 
             PlayerConfig playerConfig = EnsurePlayerConfig();
-            GameObject playerPrefab = EnsurePlayerPrefab(playerMaterial, boundaryMaterial);
+            GameObject playerPrefab = EnsurePlayerPrefab();
             SetupGameplayScene(
                 playerConfig,
                 playerPrefab,
@@ -101,9 +98,7 @@ namespace ProjectGatefront.Editor
             return playerConfig;
         }
 
-        private static GameObject EnsurePlayerPrefab(
-            Material playerMaterial,
-            Material orientationMaterial)
+        private static GameObject EnsurePlayerPrefab()
         {
             GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
                 PlayerPrefabPath);
@@ -127,28 +122,11 @@ namespace ProjectGatefront.Editor
 
                 EnsureComponent<PlayerController>(root, out _);
 
-                Transform visual = EnsureChild(root.transform, "Visual", out _);
-                EnsurePrefabPrimitive(
-                    visual,
-                    "Body",
-                    PrimitiveType.Capsule,
-                    new Vector3(0f, 1f, 0f),
-                    new Vector3(0.8f, 1f, 0.8f),
-                    playerMaterial);
-                EnsurePrefabPrimitive(
-                    visual,
-                    "HeadMarker",
-                    PrimitiveType.Sphere,
-                    new Vector3(0f, 2.08f, 0f),
-                    new Vector3(0.55f, 0.4f, 0.55f),
-                    playerMaterial);
-                EnsurePrefabPrimitive(
-                    visual,
-                    "ForwardMarker",
-                    PrimitiveType.Cube,
-                    new Vector3(0f, 1.25f, 0.52f),
-                    new Vector3(0.18f, 0.18f, 0.65f),
-                    orientationMaterial);
+                Transform oldVisual = root.transform.Find("Visual");
+                if (oldVisual != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(oldVisual.gameObject);
+                }
 
                 Transform cameraTarget = EnsureChild(
                     root.transform,
@@ -174,35 +152,6 @@ namespace ProjectGatefront.Editor
             }
 
             return AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
-        }
-
-        private static void EnsurePrefabPrimitive(
-            Transform parent,
-            string objectName,
-            PrimitiveType primitiveType,
-            Vector3 localPosition,
-            Vector3 localScale,
-            Material material)
-        {
-            Transform existing = parent.Find(objectName);
-            if (existing != null)
-            {
-                return;
-            }
-
-            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
-            primitive.name = objectName;
-            primitive.transform.SetParent(parent, false);
-            primitive.transform.localPosition = localPosition;
-            primitive.transform.localRotation = Quaternion.identity;
-            primitive.transform.localScale = localScale;
-            primitive.GetComponent<MeshRenderer>().sharedMaterial = material;
-
-            Collider collider = primitive.GetComponent<Collider>();
-            if (collider != null)
-            {
-                UnityEngine.Object.DestroyImmediate(collider);
-            }
         }
 
         private static void SetupGameplayScene(

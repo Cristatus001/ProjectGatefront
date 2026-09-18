@@ -8,6 +8,8 @@ namespace ProjectGatefront.Tests.EditMode
 {
     public sealed class SquadControllerTests
     {
+        private const float Tolerance = 0.0001f;
+
         private GameObject squadRootObject;
         private GameObject unitTemplateObject;
         private PlayerConfig playerConfig;
@@ -42,96 +44,171 @@ namespace ProjectGatefront.Tests.EditMode
         }
 
         [Test]
-        public void AddUnits_IncreasesTotalCombatantCount()
-        {
-            int initialCount = controller.CurrentUnitCount;
-
-            int added = controller.AddUnits(3);
-
-            Assert.That(added, Is.EqualTo(3));
-            Assert.That(controller.CurrentUnitCount, Is.EqualTo(initialCount + 3));
-        }
-
-        [Test]
         public void Initialize_UsesCompactFormationByDefault()
         {
             Assert.That(controller.CurrentFormation, Is.EqualTo(FormationType.Compact));
         }
 
         [Test]
-        public void RemoveUnits_DecreasesTotalCombatantCount()
+        public void CurrentUnitCount_EqualsVisiblePooledSoldiersAtOneFiveAndTwenty()
         {
-            int initialCount = controller.CurrentUnitCount;
+            AssertVisibleCount(5);
 
-            int removed = controller.RemoveUnits(2);
+            controller.RemoveUnits(100);
+            AssertVisibleCount(1);
 
-            Assert.That(removed, Is.EqualTo(2));
-            Assert.That(controller.CurrentUnitCount, Is.EqualTo(initialCount - 2));
+            controller.AddUnits(4);
+            AssertVisibleCount(5);
+
+            controller.AddUnits(15);
+            AssertVisibleCount(20);
         }
 
         [Test]
-        public void RemoveUnits_CannotRemoveLeaderOrBecomeNegative()
+        public void AddUnits_IncreasesVisibleSoldierCount()
         {
-            controller.RemoveUnits(100);
+            int initialCount = controller.CurrentUnitCount;
+            int added = controller.AddUnits(3);
 
-            Assert.That(controller.CurrentUnitCount, Is.EqualTo(1));
-            Assert.That(controller.ActiveFollowerCount, Is.Zero);
+            Assert.That(added, Is.EqualTo(3));
+            Assert.That(controller.CurrentUnitCount, Is.EqualTo(initialCount + 3));
+            Assert.That(controller.FormationSlotCount, Is.EqualTo(controller.CurrentUnitCount));
+        }
+
+        [Test]
+        public void RemoveUnits_DecreasesVisibleSoldierCountButKeepsMinimumOne()
+        {
+            int removed = controller.RemoveUnits(100);
+
+            Assert.That(removed, Is.EqualTo(4));
+            AssertVisibleCount(1);
+            Assert.That(controller.RemoveUnit(), Is.Zero);
         }
 
         [Test]
         public void AddUnits_ClampsAtConfiguredMaximum()
         {
             controller.AddUnits(100);
-
-            Assert.That(
-                controller.CurrentUnitCount,
-                Is.EqualTo(config.MaxSquadSize));
+            AssertVisibleCount(config.MaxSquadSize);
         }
 
         [Test]
-        public void UnitCountChange_RecalculatesFormation()
+        public void UnitCountChange_RecalculatesFormationWithoutInnerHoles()
         {
+            var units = new List<SquadUnit>();
+            controller.CopyActiveUnitsTo(units);
+            var originalTargets = new List<Vector3>(units.Count);
+            for (int index = 0; index < units.Count; index++)
+            {
+                originalTargets.Add(units[index].TargetLocalPosition);
+            }
+
             int initialRevision = controller.FormationRevision;
+            controller.AddUnits(5);
+            controller.RemoveUnits(5);
+            controller.CopyActiveUnitsTo(units);
 
-            controller.AddUnit();
-
-            Assert.That(controller.FormationRevision, Is.GreaterThan(initialRevision));
-            Assert.That(
-                controller.FormationSlotCount,
-                Is.EqualTo(controller.CurrentUnitCount - 1));
+            Assert.That(controller.FormationRevision, Is.EqualTo(initialRevision + 2));
+            Assert.That(controller.FormationSlotCount, Is.EqualTo(controller.CurrentUnitCount));
+            for (int index = 0; index < units.Count; index++)
+            {
+                Assert.That(units[index].SlotIndex, Is.EqualTo(index));
+                Assert.That(units[index].TargetLocalPosition, Is.EqualTo(originalTargets[index]));
+            }
         }
 
         [Test]
-        public void RemovedFollower_IsReusedByPool()
+        public void RemovedUnit_IsReusedBySharedPool()
         {
-            var followers = new List<SquadUnit>();
-            controller.CopyActiveFollowersTo(followers);
-            SquadUnit removedFollower = followers[followers.Count - 1];
+            var units = new List<SquadUnit>();
+            controller.CopyActiveUnitsTo(units);
+            SquadUnit removedUnit = units[units.Count - 1];
 
             controller.RemoveUnit();
             controller.AddUnit();
-            controller.CopyActiveFollowersTo(followers);
+            controller.CopyActiveUnitsTo(units);
 
-            Assert.That(followers, Does.Contain(removedFollower));
+            Assert.That(units, Does.Contain(removedUnit));
         }
 
         [Test]
-        public void RefreshFormation_NearTrackEdgeAppliesGroupCorrection()
+        public void RootTranslation_MovesEveryUnitBySameDeltaWithoutStretching()
         {
-            float leaderUsableHalfWidth =
-                ProjectGatefront.Gameplay.Player.PlayerMovementMath
-                    .CalculateUsableTrackHalfWidth(
-                        playerConfig.TrackHalfWidth,
-                        playerConfig.LeaderBoundaryRadius,
-                        playerConfig.TrackBoundaryPadding);
-            squadRootObject.transform.position = new Vector3(
-                leaderUsableHalfWidth,
-                0f,
-                0f);
+            var units = new List<SquadUnit>();
+            controller.CopyActiveUnitsTo(units);
+            var initialWorldPositions = new List<Vector3>(units.Count);
+            var initialLocalPositions = new List<Vector3>(units.Count);
+            for (int index = 0; index < units.Count; index++)
+            {
+                initialWorldPositions.Add(units[index].transform.position);
+                initialLocalPositions.Add(units[index].transform.localPosition);
+            }
 
-            controller.RefreshFormation();
+            squadRootObject.transform.position += Vector3.left * 2f;
+            for (int index = 0; index < units.Count; index++)
+            {
+                Vector3 delta = units[index].transform.position
+                    - initialWorldPositions[index];
+                Assert.That(delta, Is.EqualTo(Vector3.left * 2f));
+                Assert.That(
+                    units[index].transform.localPosition,
+                    Is.EqualTo(initialLocalPositions[index]));
+            }
 
-            Assert.That(controller.CurrentHorizontalCorrection, Is.LessThan(0f));
+            var leftWorldPositions = new List<Vector3>(units.Count);
+            for (int index = 0; index < units.Count; index++)
+            {
+                leftWorldPositions.Add(units[index].transform.position);
+            }
+
+            squadRootObject.transform.position += Vector3.right * 4f;
+            for (int index = 0; index < units.Count; index++)
+            {
+                Vector3 reversalDelta = units[index].transform.position
+                    - leftWorldPositions[index];
+                Assert.That(reversalDelta, Is.EqualTo(Vector3.right * 4f));
+                Assert.That(
+                    units[index].transform.localPosition,
+                    Is.EqualTo(initialLocalPositions[index]));
+            }
+        }
+
+        [Test]
+        public void RootLimits_ContainAllCurrentFormationTargetsAtBothEdges()
+        {
+            controller.AddUnits(15);
+            var units = new List<SquadUnit>();
+            controller.CopyActiveUnitsTo(units);
+            float usableHalfWidth = controller.UnitUsableTrackHalfWidth;
+
+            for (int index = 0; index < units.Count; index++)
+            {
+                float localX = units[index].TargetLocalPosition.x;
+                Assert.That(
+                    controller.MinimumRootX + localX,
+                    Is.InRange(
+                        -usableHalfWidth - Tolerance,
+                        usableHalfWidth + Tolerance));
+                Assert.That(
+                    controller.MaximumRootX + localX,
+                    Is.InRange(
+                        -usableHalfWidth - Tolerance,
+                        usableHalfWidth + Tolerance));
+            }
+        }
+
+        private void AssertVisibleCount(int expectedCount)
+        {
+            var units = new List<SquadUnit>();
+            controller.CopyActiveUnitsTo(units);
+            Assert.That(controller.CurrentUnitCount, Is.EqualTo(expectedCount));
+            Assert.That(controller.ActiveUnitCount, Is.EqualTo(expectedCount));
+            Assert.That(controller.FormationSlotCount, Is.EqualTo(expectedCount));
+            Assert.That(units.Count, Is.EqualTo(expectedCount));
+            for (int index = 0; index < units.Count; index++)
+            {
+                Assert.That(units[index].IsActive, Is.True);
+            }
         }
     }
 }

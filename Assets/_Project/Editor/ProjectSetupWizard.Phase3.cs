@@ -114,6 +114,22 @@ namespace ProjectGatefront.Editor
                 RemoveGeneratedSquadVisual(visual, "Helmet");
                 RemoveGeneratedSquadVisual(visual, "Backpack");
 
+                Transform weaponMount = EnsureChild(
+                    root.transform,
+                    "WeaponMount",
+                    out _);
+                weaponMount.localPosition = new Vector3(0f, 1.12f, 0.46f);
+                weaponMount.localRotation = Quaternion.identity;
+                weaponMount.localScale = Vector3.one;
+
+                Transform firePoint = EnsureChild(
+                    weaponMount,
+                    "FirePoint",
+                    out _);
+                firePoint.localPosition = new Vector3(0f, 0f, 0.4f);
+                firePoint.localRotation = Quaternion.identity;
+                firePoint.localScale = Vector3.one;
+
                 PrefabUtility.SaveAsPrefabAsset(root, SquadUnitPrefabPath);
             }
             finally
@@ -195,6 +211,8 @@ namespace ProjectGatefront.Editor
             GameObject root = PrefabUtility.LoadPrefabContents(PlayerPrefabPath);
             try
             {
+                RemoveGeneratedSquadVisual(root.transform, "Visual");
+
                 Transform squadRoot = EnsureChild(
                     root.transform,
                     "SquadRoot",

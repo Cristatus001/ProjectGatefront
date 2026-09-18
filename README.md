@@ -2,7 +2,7 @@
 
 Project Gatefront is an original, commercial-quality 3D action-runner in which the player commands and develops a tactical squad through compact battlefield missions. The project is designed first for browser delivery while keeping runtime systems independent from any single portal SDK.
 
-Current development stage: **PHASE 3.5 — Moving World Gameplay Redesign**
+Current development stage: **PHASE 3.6 — Unified Squad Blob Fix**
 
 The current prototype uses a fixed squad combat zone with resolution-independent
 horizontal drag, a mostly fixed portrait camera, a moving battlefield, recycled
@@ -63,11 +63,12 @@ command is idempotent and replaces the old long static track in 02_Gameplay.
 
 ## Squad formation prototype
 
-The visible player is the squad leader and combatant 1. Followers are pooled beneath
-SquadRoot. Compact is the default combat formation; Line, Wedge, Column, and Spread
-remain available for future tactical mechanics. Development controls use 1–5 to
-switch formations, = to add a combatant, and - to remove one. Holding Shift changes
-the add/remove amount to five.
+PF_Player is an invisible control root. Every visible combatant is a pooled
+PF_SquadUnit beneath SquadRoot, and CurrentUnitCount equals the visible soldier
+count. Compact is a centered staggered crowd; Line, Wedge, Column, and Spread remain
+available for future tactical mechanics. Development controls use 1–5 to switch
+formations, = to add a combatant, and - to remove one. Holding Shift changes the
+add/remove amount to five.
 
 The Phase 3 prototype can be safely created or repaired with
 **Tools > Project Gatefront > Setup Phase 3 Squad Prototype**.

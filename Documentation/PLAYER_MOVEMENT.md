@@ -4,7 +4,7 @@
 
 Project Gatefront uses +Z as the direction incoming content originates from, -Z as
 the direction world content moves toward and past the squad, +X as horizontal, and
-+Y as vertical. The player object is the fixed combat anchor for the squad.
++Y as vertical. The player object is an invisible fixed combat anchor for the squad.
 
 ## Movement
 
@@ -38,9 +38,12 @@ PlayerConfig contains:
 - lateralSensitivity — world distance for a full-screen-width drag
 - lateralSmoothTime — lateral response smoothing
 - trackHalfWidth — shared absolute X road limit
-- leaderBoundaryRadius — approximate visible leader half-width
 - trackBoundaryPadding — shared visual inset from the road edge
 - maximumLateralSpeed — cap applied during smoothing
+
+SquadController combines the current formation extents with trackHalfWidth,
+trackBoundaryPadding, and the shared soldier radius, then supplies PlayerController
+with the legal root X range. This keeps the full visible formation inside the road.
 
 World forward presentation speed is configured separately in GameBalanceConfig as
 worldScrollSpeed. Prototype defaults are stored under

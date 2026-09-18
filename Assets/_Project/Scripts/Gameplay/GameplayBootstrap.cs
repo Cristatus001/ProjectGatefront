@@ -80,7 +80,7 @@ namespace ProjectGatefront.Gameplay
 
             playerController.Initialize(playerConfig, new PointerDragInputSource());
             runnerCamera.Initialize(cameraTarget);
-            squadController.Initialize(playerConfig);
+            squadController.Initialize(playerConfig, playerController);
             worldScroller.Initialize();
             playerController.SetMovementEnabled(movementEnabledOnStart);
             runnerCamera.SetFollowEnabled(movementEnabledOnStart);
