@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0-dev
+
+- Added automatic squad shooting.
+- Added shared weapon configuration.
+- Added runtime weapon stats.
+- Added pooled projectiles.
+- Added target registry and targeting.
+- Added prototype damageable targets.
+- Added weapon mount visuals.
+- Added firing feedback.
+
 ## 0.3.5-dev
 
 - Reworked gameplay to fixed squad / moving world presentation

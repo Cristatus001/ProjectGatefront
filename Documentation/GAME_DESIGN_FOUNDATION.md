@@ -27,8 +27,16 @@ the army as one unit through an invisible pivot; there is no persistent visible
 commander. All active soldiers are visually equivalent, and horizontal drag shifts
 the full squad together.
 
-The future baseline combat interaction is automatic shooting. Gates, enemies,
-weapons, rewards, and progression are intentionally not implemented in Phase 3.5.
+The baseline squad combat interaction is automatic shooting. Every visible soldier
+contributes firepower from the shared equipped weapon; the player remains responsible
+for horizontal positioning and later tactical choices rather than pressing a fire
+button. Phase 4 uses simple damageable test targets, not real enemy AI.
+
+Permanent weapon progression will happen between attempts and may improve damage,
+fire rate, projectile count, penetration, or weapon presentation. Future gates and
+pickups may grant run-specific changes. Both forms of progression will resolve into
+runtime weapon stats without modifying base weapon configuration assets. Economy,
+upgrade menus, gates, and pickups remain future work.
 
 The intended future progression loop is:
 

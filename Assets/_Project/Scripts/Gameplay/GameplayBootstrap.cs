@@ -2,6 +2,7 @@ using ProjectGatefront.Core;
 using ProjectGatefront.Data;
 using ProjectGatefront.Gameplay.Player;
 using ProjectGatefront.Gameplay.Squad;
+using ProjectGatefront.Gameplay.Weapons;
 using ProjectGatefront.Gameplay.World;
 using UnityEngine;
 
@@ -18,6 +19,7 @@ namespace ProjectGatefront.Gameplay
         [SerializeField] private SquadController squadController;
         [SerializeField] private GameBalanceConfig gameBalanceConfig;
         [SerializeField] private WorldScroller worldScroller;
+        [SerializeField] private SquadWeaponSystem squadWeaponSystem;
         [SerializeField] private bool movementEnabledOnStart = true;
 
         public bool IsInitialized { get; private set; }
@@ -55,6 +57,11 @@ namespace ProjectGatefront.Gameplay
             worldScroller = scroller;
         }
 
+        public void ConfigureCombat(SquadWeaponSystem weaponSystem)
+        {
+            squadWeaponSystem = weaponSystem;
+        }
+
         public void Initialize()
         {
             if (IsInitialized)
@@ -69,7 +76,8 @@ namespace ProjectGatefront.Gameplay
                 || squadConfig == null
                 || squadController == null
                 || gameBalanceConfig == null
-                || worldScroller == null)
+                || worldScroller == null
+                || squadWeaponSystem == null)
             {
                 GameLog.Error(
                     "GameplayBootstrap is missing required scene references.",
@@ -82,9 +90,11 @@ namespace ProjectGatefront.Gameplay
             runnerCamera.Initialize(cameraTarget);
             squadController.Initialize(playerConfig, playerController);
             worldScroller.Initialize();
+            squadWeaponSystem.Initialize();
             playerController.SetMovementEnabled(movementEnabledOnStart);
             runnerCamera.SetFollowEnabled(movementEnabledOnStart);
             worldScroller.SetScrollingEnabled(movementEnabledOnStart);
+            squadWeaponSystem.SetCombatEnabled(movementEnabledOnStart);
             IsInitialized = true;
         }
 
@@ -93,6 +103,7 @@ namespace ProjectGatefront.Gameplay
             playerController.SetMovementEnabled(enabled);
             runnerCamera.SetFollowEnabled(enabled);
             worldScroller.SetScrollingEnabled(enabled);
+            squadWeaponSystem.SetCombatEnabled(enabled);
         }
     }
 }

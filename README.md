@@ -2,13 +2,16 @@
 
 Project Gatefront is an original, commercial-quality 3D action-runner in which the player commands and develops a tactical squad through compact battlefield missions. The project is designed first for browser delivery while keeping runtime systems independent from any single portal SDK.
 
-Current development stage: **PHASE 3.6 — Unified Squad Blob Fix**
+Current development stage: **PHASE 4 — Automatic Shooting Prototype**
 
 The current prototype uses a fixed squad combat zone with resolution-independent
 horizontal drag, a mostly fixed portrait camera, a moving battlefield, recycled
-track chunks, virtual level distance, pooled squad spawning, and Compact plus four
-tactical formations. Advertising, analytics, portal SDK integration, gates,
-enemies, and combat systems are not included.
+track chunks, virtual level distance, pooled squad spawning, Compact plus four
+tactical formations, and automatic squad shooting. Every visible soldier uses the
+shared Prototype Rifle, acquires targets automatically, and launches visible pooled
+projectiles at damageable test targets. The runtime weapon-stat and tier foundation
+is ready for later progression work. Advertising, analytics, portal SDK integration,
+gates, real enemy AI, and upgrade economy are not included.
 
 ## Engine
 
@@ -46,8 +49,8 @@ Third-party packages must remain outside Assets/_Project.
 - Assets/_Project/Scenes/02_Gameplay.unity
 
 The boot scene initializes persistent game-level services. The main menu remains
-an empty foundation; the gameplay scene contains the Phase 3.5 moving-world
-prototype.
+an empty foundation; the gameplay scene contains the Phase 4 automatic-shooting
+prototype built on the moving-world presentation.
 
 ## Moving-world gameplay prototype
 
@@ -73,6 +76,19 @@ add/remove amount to five.
 The Phase 3 prototype can be safely created or repaired with
 **Tools > Project Gatefront > Setup Phase 3 Squad Prototype**.
 
+## Automatic shooting prototype
+
+All active squad members are shooters; there is no hidden or leader-only shooter.
+A centralized target registry selects the nearest valid forward target at a modest
+refresh rate, while each soldier keeps an independently staggered weapon cooldown.
+Visible kinematic projectiles use a prewarmed reusable pool and segment collision
+checks against primitive test targets that move with the battlefield.
+
+The Phase 4 prototype can be safely created or repaired with
+**Tools > Project Gatefront > Setup Phase 4 Auto Shooting Prototype**. Weapon base
+data lives in `PrototypeRifle.asset`; resolved runtime stats remain separate so
+future permanent and run-specific upgrades never mutate the configuration asset.
+
 ## Branch strategy
 
 - main — stable/release-ready work
@@ -92,3 +108,4 @@ See [Documentation/CODING_STANDARDS.md](Documentation/CODING_STANDARDS.md). Tech
 Player movement details are recorded in [Documentation/PLAYER_MOVEMENT.md](Documentation/PLAYER_MOVEMENT.md).
 Squad architecture is recorded in [Documentation/SQUAD_SYSTEM.md](Documentation/SQUAD_SYSTEM.md).
 Moving-world architecture is recorded in [Documentation/MOVING_WORLD_ARCHITECTURE.md](Documentation/MOVING_WORLD_ARCHITECTURE.md).
+Weapon and combat architecture is recorded in [Documentation/WEAPON_SYSTEM.md](Documentation/WEAPON_SYSTEM.md).

@@ -31,6 +31,14 @@ namespace ProjectGatefront.Tests.PlayMode
                 Object.FindFirstObjectByType<WorldScroller>();
             ScrollItem[] scrollItems = Object.FindObjectsByType<ScrollItem>(
                 FindObjectsSortMode.None);
+            var trackChunks = new List<ScrollItem>();
+            for (int index = 0; index < scrollItems.Length; index++)
+            {
+                if (scrollItems[index].IsRecyclable)
+                {
+                    trackChunks.Add(scrollItems[index]);
+                }
+            }
 
             Assert.That(bootstrap, Is.Not.Null);
             Assert.That(player, Is.Not.Null);
@@ -38,6 +46,7 @@ namespace ProjectGatefront.Tests.PlayMode
             Assert.That(squadController, Is.Not.Null);
             Assert.That(worldScroller, Is.Not.Null);
             Assert.That(scrollItems.Length, Is.GreaterThanOrEqualTo(3));
+            Assert.That(trackChunks.Count, Is.GreaterThanOrEqualTo(3));
             Assert.That(Camera.main, Is.Not.Null);
             Assert.That(bootstrap.IsInitialized, Is.True);
             Assert.That(player.IsInitialized, Is.True);
@@ -134,7 +143,7 @@ namespace ProjectGatefront.Tests.PlayMode
             }
 
             float startingForwardPosition = player.transform.position.z;
-            float startingChunkPosition = scrollItems[0].transform.position.z;
+            float startingChunkPosition = trackChunks[0].transform.position.z;
             float startingDistance = worldScroller.DistanceTravelled;
             Vector3 startingCameraPosition = Camera.main.transform.position;
             yield return null;
@@ -146,7 +155,7 @@ namespace ProjectGatefront.Tests.PlayMode
                 squadRoot.position.z,
                 Is.EqualTo(startingForwardPosition).Within(Tolerance));
             Assert.That(
-                scrollItems[0].transform.position.z,
+                trackChunks[0].transform.position.z,
                 Is.LessThan(startingChunkPosition));
             Assert.That(worldScroller.DistanceTravelled, Is.GreaterThan(startingDistance));
             Assert.That(
@@ -159,10 +168,10 @@ namespace ProjectGatefront.Tests.PlayMode
             int recycleCount = worldScroller.RecycleCount;
             worldScroller.Tick(5f);
             Assert.That(worldScroller.RecycleCount, Is.GreaterThan(recycleCount));
-            float[] chunkPositions = new float[scrollItems.Length];
-            for (int index = 0; index < scrollItems.Length; index++)
+            float[] chunkPositions = new float[trackChunks.Count];
+            for (int index = 0; index < trackChunks.Count; index++)
             {
-                chunkPositions[index] = scrollItems[index].transform.position.z;
+                chunkPositions[index] = trackChunks[index].transform.position.z;
             }
 
             System.Array.Sort(chunkPositions);

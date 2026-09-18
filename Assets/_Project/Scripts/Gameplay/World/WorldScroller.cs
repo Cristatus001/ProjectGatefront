@@ -104,7 +104,7 @@ namespace ProjectGatefront.Gameplay.World
             for (int index = 0; index < scrollItems.Count; index++)
             {
                 ScrollItem item = scrollItems[index];
-                if (item != null)
+                if (item != null && item.gameObject.activeInHierarchy)
                 {
                     item.AdvanceTowardsPlayer(distanceDelta);
                 }
