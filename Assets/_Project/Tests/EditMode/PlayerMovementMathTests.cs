@@ -65,5 +65,29 @@ namespace ProjectGatefront.Tests.EditMode
                 PlayerMovementMath.CalculateUsableTrackHalfWidth(4.25f, 0.42f, 0.08f),
                 Is.EqualTo(3.75f).Within(0.0001f));
         }
+
+        [Test]
+        public void ClampHorizontal_AsymmetricRangeUsesFormationLimits()
+        {
+            Assert.That(
+                PlayerMovementMath.ClampHorizontal(5f, -1.5f, 2.25f),
+                Is.EqualTo(2.25f));
+            Assert.That(
+                PlayerMovementMath.ClampHorizontal(-5f, -1.5f, 2.25f),
+                Is.EqualTo(-1.5f));
+        }
+
+        [Test]
+        public void CalculateLateralTarget_AsymmetricRangeStopsWholeSquadRoot()
+        {
+            Assert.That(
+                PlayerMovementMath.CalculateLateralTarget(
+                    2f,
+                    1f,
+                    10f,
+                    -1.5f,
+                    2.25f),
+                Is.EqualTo(2.25f));
+        }
     }
 }

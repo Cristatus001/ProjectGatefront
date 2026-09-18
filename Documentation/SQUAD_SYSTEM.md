@@ -1,95 +1,107 @@
 # Squad System
 
-## Squad anchor
+## Invisible control root
 
-PlayerRoot remains the movement-controlled squad leader. SquadRoot is a direct child
-of PlayerRoot and defines the local coordinate space for formation slots:
+PF_Player is an invisible control prefab. Its CharacterController and
+PlayerController keep the fixed combat anchor at the configured Z coordinate and
+move the complete army horizontally. The direct SquadRoot child defines the local
+formation coordinate space:
 
 - +Z is forward
 - +X is horizontal
 - +Y is vertical
 
-Followers target positions behind the leader in negative local Z. SquadUnit smooths
-world position toward its assigned local slot, which allows visible follow motion
-when the anchor moves laterally.
+PF_Player has no rendered body. All visible soldiers are pooled PF_SquadUnit
+instances parented beneath SquadRoot. Moving the control root therefore translates
+every soldier by the same world-space delta immediately; individual soldiers never
+chase a rendered leader.
 
-## Leader counting convention
+## Equal-member count semantics
 
-CurrentUnitCount is the total number of combatants **including the visible leader**.
-The leader is never pooled or removed. A configured starting count of 5 therefore
-creates 1 leader and 4 followers, and the minimum runtime count is 1.
+CurrentUnitCount is exactly the number of active visible soldiers. There is no
+hidden or always-counted commander. A count of 1 means one pooled PF_SquadUnit is
+visible, a count of 20 means twenty are visible, and the minimum count remains 1.
+
+Every visible member uses the same prefab, scale, body proportions, material family,
+facing, WeaponMount, and FirePoint hierarchy. WeaponMount and FirePoint are transform
+anchors only; Phase 3.6 does not implement shooting.
 
 ## Responsibilities
 
-- SquadController owns follower membership, pooling, stable slot assignment, count
-  limits, formation changes, events, and development controls.
-- FormationCalculator generates local slots only when squad size, formation, or
-  configuration changes.
-- SquadUnit moves cheaply toward one assigned slot and faces SquadRoot forward. It
-  contains no combat, health, weapon, or specialist behavior.
-- FormationSlot carries a stable index and local position.
+- SquadController owns visible membership, one shared pool, slot assignment, count
+  limits, formation changes, root movement limits, events, and development controls.
+- FormationCalculator generates deterministic local slots when size or formation
+  changes and centers every formation on the invisible root.
+- SquadUnit settles toward its target in local space and faces the root forward.
+  Root translation does not add formation lag or stretch.
+- FormationSlot carries a stable index and local target position.
 
-SquadCountChanged and FormationChanged provide typed integration points without a
-UI dependency. CopyActiveFollowersTo provides controlled access for future combat
-systems without exposing the mutable internal list.
+SquadCountChanged and FormationChanged are typed integration points without a UI
+dependency. CopyActiveUnitsTo provides controlled access to all visible soldiers
+without exposing the mutable internal list.
 
 ## Formations
 
-- Line uses compact centered rows with a configurable row capacity.
-- Wedge begins with a narrow apex, then adds left/right pairs farther back.
-- Column uses one or two narrow columns and extends backward.
-- Spread uses wider horizontal and longitudinal spacing across centered rows.
+Compact is the default. It builds a staggered hex-like candidate grid, selects
+center/near-center symmetric pairs before outer pairs, and normalizes the footprint
+to a slightly wider-than-deep rounded crowd. Slots exist both ahead of and behind
+the centroid. No slot is reserved for a commander, no flank-first arc is used, and
+growth does not append a rear tail. Recalculation after add or remove operations
+fills the nearest complete layout again, so remaining units compact inward.
 
-All formation types clamp local X to maximumFormationHalfWidth. When the requested
-row width would exceed that value, row capacity or spacing adapts instead of placing
-followers outside the track.
+Line, Wedge, Column, and Spread remain available for future tactical mechanics.
+They are also centered on the invisible root. Phase 3.6 does not assign combat
+effects to formation choice.
 
-## Track boundary containment
+## Cohesive transitions
 
-PlayerConfig remains the single source for physical trackHalfWidth and supplies a
-small shared boundary padding. The leader clamp subtracts its approximate visual
-radius and that padding, preserving most of the available lateral range while
-keeping the visible leader inside the road.
+SquadUnit changes only its local slot offset. The configured transition speed is
+fast enough for short reshapes while the parent root supplies all direct lateral
+motion. Direction reversal therefore moves the complete army together, with no
+rendered leader, tail, or elastic world-space follow delay.
 
-FormationCalculator continues to produce stable ideal local slots. SquadController
-caches their horizontal extents, combines them with the leader's current world X,
-and calculates one world-space X correction for the entire follower formation. The
-same correction is added to every follower target, so Y, Z, and relative spacing do
-not change. Individual soldiers are not clamped independently.
+## Root-level road containment
 
-The follower usable limit accounts for PF_SquadUnit's approximate visual radius and
-the shared track padding. Formation generation also caps its maximum half-width to
-the available follower space, allowing its existing row logic to handle formations
-that would otherwise be too wide. Containment is refreshed after leader movement and
-whenever formation or squad size changes.
+PlayerConfig supplies the physical track half-width and shared boundary padding.
+SquadConfig supplies the visible soldier radius. SquadController measures the
+current formation's minimum and maximum local X extents, then calculates the legal
+control-root range:
 
-## Pooling
+`minimum root X = -usable half-width - local minimum X`
 
-The pool prewarms the configured starting follower count. Removed followers are
-disabled and pushed into the local pool, then reused before any new instance is
-created. Repeated add/remove operations within the previous peak size do not
-instantiate or destroy follower objects.
+`maximum root X = usable half-width - local maximum X`
 
-PF_SquadUnit contains shared primitive meshes with no colliders or rigidbodies. All
-standard followers share MAT_PrototypeSquadUnit.
+PlayerController clamps its lateral target to that current range. At either edge,
+the full formation stops together before any visible body crosses the road. Slots
+are not shifted, compressed, or independently corrected, so relative spacing and
+the blob centroid remain intact.
+
+## Pooling and recompaction
+
+The shared pool prewarms the configured starting visible count. Removed units are
+disabled and returned to that pool; additions reuse pooled units before creating
+new instances. Formation generation always receives the full active unit count.
+Adding or removing units rebuilds a complete centroid-prioritized slot set, avoiding
+permanent holes and tail-only growth.
 
 ## Development controls
 
 These controls compile only in the Unity Editor or development builds:
 
-- 1 — Line
-- 2 — Wedge
-- 3 — Column
-- 4 — Spread
-- = — add one combatant
-- - — remove one combatant
+- 1 — Compact
+- 2 — Line
+- 3 — Wedge
+- 4 — Column
+- 5 — Spread
+- = — add one visible soldier
+- - — remove one visible soldier
 - Shift + = / - — add or remove five
 
-An optional development overlay shows total combatant count and current formation.
-Selecting SquadRoot in the Scene view displays formation-slot gizmos.
+An optional overlay shows visible soldier count and current formation. Selecting
+SquadRoot in the Scene view displays formation-slot and usable-road gizmos.
 
-## Future compatibility
+## Moving-world boundary
 
-The pool accepts SquadUnit components rather than assuming a rifleman implementation.
-Future specialist metadata, combat state, and alternative visuals can extend or
-compose with SquadUnit without moving formation generation into individual units.
+The squad centroid remains at the existing fixed combat Z. Formation offsets add
+only modest local depth. WorldScroller, virtual DistanceTravelled, track recycling,
+and the fixed road-centered camera remain responsible for forward presentation.

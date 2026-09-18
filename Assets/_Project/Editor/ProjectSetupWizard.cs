@@ -44,6 +44,7 @@ namespace ProjectGatefront.Editor
             "Assets/_Project/Scripts/Gameplay/Weapons",
             "Assets/_Project/Scripts/Gameplay/Levels",
             "Assets/_Project/Scripts/Gameplay/Progression",
+            "Assets/_Project/Scripts/Gameplay/World",
             "Assets/_Project/Scripts/UI",
             "Assets/_Project/Scripts/Audio",
             "Assets/_Project/Scripts/Data",

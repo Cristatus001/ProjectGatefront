@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.5-dev
+
+- Reworked gameplay to fixed squad / moving world presentation
+- Added world scrolling system
+- Added virtual travelled distance
+- Added recycled track chunks
+- Added Compact squad formation
+- Reworked camera for fixed combat framing
+- Preserved tactical formations and boundary containment
+- Redesigned Compact formation to a broader rounded crowd layout
+- Updated squad follower visuals to better match the leader
+- Reworked squad to use unified soldier visuals.
+- Replaced visible leader with invisible squad control root.
+- Redesigned Compact formation as centered staggered crowd.
+- Updated horizontal movement to shift complete army together.
+- Updated boundary handling to clamp full formation.
+
 ## 0.3.0-dev
 
 - Added squad controller

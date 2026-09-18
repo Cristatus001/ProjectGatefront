@@ -7,8 +7,8 @@ namespace ProjectGatefront.Data
     {
         [SerializeField, Min(1f)] private float maximumHealth = 100f;
 
-        [Tooltip("Automatic movement speed along the world +Z axis, in units per second.")]
-        [SerializeField, Min(0f)] private float forwardSpeed = 8f;
+        [Tooltip("Stable world Z position used by the player and squad combat anchor.")]
+        [SerializeField] private float combatAnchorZ = 2f;
 
         [Tooltip("World-space lateral distance produced by dragging across the full screen width.")]
         [SerializeField, Min(0f)] private float lateralSensitivity = 10f;
@@ -19,9 +19,6 @@ namespace ProjectGatefront.Data
         [Tooltip("Maximum absolute world X coordinate available to the player root.")]
         [SerializeField, Min(0.1f)] private float trackHalfWidth = 4.25f;
 
-        [Tooltip("Approximate leader half-width used to keep the visible body inside the track.")]
-        [SerializeField, Min(0f)] private float leaderBoundaryRadius = 0.42f;
-
         [Tooltip("Small inset applied inside both track edges for visible body containment.")]
         [SerializeField, Min(0f)] private float trackBoundaryPadding = 0.08f;
 
@@ -30,15 +27,13 @@ namespace ProjectGatefront.Data
 
         public float MaximumHealth => maximumHealth;
 
-        public float ForwardSpeed => forwardSpeed;
+        public float CombatAnchorZ => combatAnchorZ;
 
         public float LateralSensitivity => lateralSensitivity;
 
         public float LateralSmoothTime => lateralSmoothTime;
 
         public float TrackHalfWidth => trackHalfWidth;
-
-        public float LeaderBoundaryRadius => leaderBoundaryRadius;
 
         public float TrackBoundaryPadding => trackBoundaryPadding;
 

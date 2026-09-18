@@ -32,8 +32,13 @@ namespace ProjectGatefront.Editor
             Material squadMaterial = EnsurePrototypeMaterial(
                 "MAT_PrototypeSquadUnit",
                 new Color(0.24f, 0.68f, 0.34f));
+            Material orientationMaterial = EnsurePrototypeMaterial(
+                "MAT_PrototypeBoundary",
+                new Color(0.95f, 0.48f, 0.08f));
             SquadConfig squadConfig = EnsureSquadConfig();
-            GameObject squadUnitPrefab = EnsureSquadUnitPrefab(squadMaterial);
+            GameObject squadUnitPrefab = EnsureSquadUnitPrefab(
+                squadMaterial,
+                orientationMaterial);
 
             EnsurePlayerSquadRoot(squadConfig, squadUnitPrefab);
             AssetDatabase.SaveAssets();
@@ -61,7 +66,9 @@ namespace ProjectGatefront.Editor
             return squadConfig;
         }
 
-        private static GameObject EnsureSquadUnitPrefab(Material squadMaterial)
+        private static GameObject EnsureSquadUnitPrefab(
+            Material squadMaterial,
+            Material orientationMaterial)
         {
             GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
                 SquadUnitPrefabPath);
@@ -72,37 +79,56 @@ namespace ProjectGatefront.Editor
 
             try
             {
+                root.name = "PF_SquadUnit";
                 EnsureComponent<SquadUnit>(root, out _);
                 Transform visual = EnsureChild(root.transform, "Visual", out _);
+                visual.localPosition = Vector3.zero;
+                visual.localRotation = Quaternion.identity;
+                visual.localScale = Vector3.one;
 
-                EnsurePrefabPrimitive(
+                EnsureSquadVisualPrimitive(
                     visual,
+                    "Body",
                     "Torso",
                     PrimitiveType.Capsule,
-                    new Vector3(0f, 0.58f, 0f),
-                    new Vector3(0.42f, 0.55f, 0.42f),
+                    new Vector3(0f, 0.86f, 0f),
+                    new Vector3(0.68f, 0.86f, 0.68f),
                     squadMaterial);
-                EnsurePrefabPrimitive(
+                EnsureSquadVisualPrimitive(
                     visual,
+                    "HeadMarker",
                     "Head",
                     PrimitiveType.Sphere,
-                    new Vector3(0f, 1.25f, 0f),
-                    new Vector3(0.36f, 0.36f, 0.36f),
+                    new Vector3(0f, 1.82f, 0f),
+                    new Vector3(0.48f, 0.38f, 0.48f),
                     squadMaterial);
-                EnsurePrefabPrimitive(
+                EnsureSquadVisualPrimitive(
                     visual,
-                    "Helmet",
-                    PrimitiveType.Sphere,
-                    new Vector3(0f, 1.39f, 0.02f),
-                    new Vector3(0.4f, 0.2f, 0.4f),
-                    squadMaterial);
-                EnsurePrefabPrimitive(
-                    visual,
-                    "Backpack",
+                    "ForwardMarker",
+                    null,
                     PrimitiveType.Cube,
-                    new Vector3(0f, 0.7f, -0.27f),
-                    new Vector3(0.32f, 0.52f, 0.18f),
-                    squadMaterial);
+                    new Vector3(0f, 1.12f, 0.46f),
+                    new Vector3(0.15f, 0.15f, 0.58f),
+                    orientationMaterial);
+
+                RemoveGeneratedSquadVisual(visual, "Helmet");
+                RemoveGeneratedSquadVisual(visual, "Backpack");
+
+                Transform weaponMount = EnsureChild(
+                    root.transform,
+                    "WeaponMount",
+                    out _);
+                weaponMount.localPosition = new Vector3(0f, 1.12f, 0.46f);
+                weaponMount.localRotation = Quaternion.identity;
+                weaponMount.localScale = Vector3.one;
+
+                Transform firePoint = EnsureChild(
+                    weaponMount,
+                    "FirePoint",
+                    out _);
+                firePoint.localPosition = new Vector3(0f, 0f, 0.4f);
+                firePoint.localRotation = Quaternion.identity;
+                firePoint.localScale = Vector3.one;
 
                 PrefabUtility.SaveAsPrefabAsset(root, SquadUnitPrefabPath);
             }
@@ -121,6 +147,63 @@ namespace ProjectGatefront.Editor
             return AssetDatabase.LoadAssetAtPath<GameObject>(SquadUnitPrefabPath);
         }
 
+        private static GameObject EnsureSquadVisualPrimitive(
+            Transform parent,
+            string objectName,
+            string fallbackName,
+            PrimitiveType primitiveType,
+            Vector3 localPosition,
+            Vector3 localScale,
+            Material material)
+        {
+            Transform existing = parent.Find(objectName);
+            if (existing == null && !string.IsNullOrEmpty(fallbackName))
+            {
+                existing = parent.Find(fallbackName);
+            }
+
+            GameObject primitive;
+            if (existing == null)
+            {
+                primitive = GameObject.CreatePrimitive(primitiveType);
+                primitive.transform.SetParent(parent, false);
+            }
+            else
+            {
+                primitive = existing.gameObject;
+            }
+
+            primitive.name = objectName;
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            MeshRenderer renderer = primitive.GetComponent<MeshRenderer>();
+            if (renderer != null)
+            {
+                renderer.sharedMaterial = material;
+            }
+
+            Collider collider = primitive.GetComponent<Collider>();
+            if (collider != null)
+            {
+                UnityEngine.Object.DestroyImmediate(collider);
+            }
+
+            primitive.isStatic = false;
+            return primitive;
+        }
+
+        private static void RemoveGeneratedSquadVisual(
+            Transform parent,
+            string objectName)
+        {
+            Transform child = parent.Find(objectName);
+            if (child != null)
+            {
+                UnityEngine.Object.DestroyImmediate(child.gameObject);
+            }
+        }
+
         private static void EnsurePlayerSquadRoot(
             SquadConfig squadConfig,
             GameObject squadUnitPrefab)
@@ -128,6 +211,8 @@ namespace ProjectGatefront.Editor
             GameObject root = PrefabUtility.LoadPrefabContents(PlayerPrefabPath);
             try
             {
+                RemoveGeneratedSquadVisual(root.transform, "Visual");
+
                 Transform squadRoot = EnsureChild(
                     root.transform,
                     "SquadRoot",

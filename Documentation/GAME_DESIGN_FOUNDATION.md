@@ -17,18 +17,45 @@ RUN
 → UPGRADE
 → NEXT MISSION
 
+## Core presentation and interaction
+
+The squad remains visually anchored near the lower portion of the portrait screen
+while battlefield content advances toward it. The primary player interaction is
+horizontal drag: the player positions the complete army across the road while
+incoming track content supplies forward motion and progression. The player controls
+the army as one unit through an invisible pivot; there is no persistent visible
+commander. All active soldiers are visually equivalent, and horizontal drag shifts
+the full squad together.
+
+The future baseline combat interaction is automatic shooting. Gates, enemies,
+weapons, rewards, and progression are intentionally not implemented in Phase 3.5.
+
+The intended future progression loop is:
+
+ATTEMPT LEVEL
+→ FIGHT
+→ FAIL OR PROGRESS
+→ EARN RESOURCES
+→ UPGRADE WEAPONS
+→ RETRY
+→ COMPLETE LEVEL
+
 ## Distinguishing mechanics
 
 ### Formation system
 
 Players will eventually unlock tactical formations whose gameplay tradeoffs are meaningful:
 
+- **Compact:** dense default combat presentation with concentrated coverage.
 - **Line:** balanced coverage and general-purpose performance.
 - **Wedge:** high frontal damage with more exposed flanks.
 - **Column:** compact movement through narrow obstacles and lanes.
 - **Spread:** improved survival against area attacks at the cost of concentration.
 
-Formation selection is not cosmetic. It should affect positioning, exposure, target coverage, and the kinds of encounters a squad handles well. This system is planned only and is not implemented in Phase 1.
+Formation selection is not intended to remain cosmetic. It should eventually affect
+positioning, exposure, target coverage, and the kinds of encounters a squad handles
+well. Phase 3.6 implements the spatial formations and unified army movement only;
+tactical combat effects are future work.
 
 ### Specialist units
 

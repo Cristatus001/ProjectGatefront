@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using ProjectGatefront.Data;
+using ProjectGatefront.Gameplay.Player;
 using UnityEngine;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 using UnityEngine.InputSystem;
@@ -15,17 +16,18 @@ namespace ProjectGatefront.Gameplay.Squad
         [SerializeField] private SquadConfig config;
         [SerializeField] private SquadUnit unitPrefab;
         [SerializeField] private Transform formationRoot;
-        [SerializeField] private FormationType currentFormation = FormationType.Line;
+        [SerializeField] private FormationType currentFormation = FormationType.Compact;
 
         [Header("Development")]
         [SerializeField] private bool debugControlsEnabled = true;
         [SerializeField] private bool debugOverlayEnabled = true;
         [SerializeField] private bool drawFormationGizmos = true;
 
-        private readonly List<SquadUnit> activeFollowers = new List<SquadUnit>();
+        private readonly List<SquadUnit> activeUnits = new List<SquadUnit>();
         private readonly List<FormationSlot> formationSlots = new List<FormationSlot>();
-        private Stack<SquadUnit> pooledFollowers;
+        private Stack<SquadUnit> pooledUnits;
         private PlayerConfig playerConfig;
+        private PlayerController controlRoot;
         private float idealLocalMinX;
         private float idealLocalMaxX;
 
@@ -36,18 +38,20 @@ namespace ProjectGatefront.Gameplay.Squad
         public bool IsInitialized { get; private set; }
 
         public int CurrentUnitCount => IsInitialized
-            ? activeFollowers.Count + 1
+            ? activeUnits.Count
             : 0;
 
-        public int ActiveFollowerCount => activeFollowers.Count;
+        public int ActiveUnitCount => activeUnits.Count;
 
         public int FormationSlotCount => formationSlots.Count;
 
         public int FormationRevision { get; private set; }
 
-        public float CurrentHorizontalCorrection { get; private set; }
+        public float MinimumRootX { get; private set; }
 
-        public float FollowerUsableTrackHalfWidth => playerConfig == null
+        public float MaximumRootX { get; private set; }
+
+        public float UnitUsableTrackHalfWidth => playerConfig == null
             || config == null
                 ? 0f
                 : FormationBoundaryMath.CalculateUsableTrackHalfWidth(
@@ -73,7 +77,24 @@ namespace ProjectGatefront.Gameplay.Squad
 
         public void Initialize(PlayerConfig trackConfig)
         {
-            Initialize(config, unitPrefab, formationRoot, trackConfig);
+            Initialize(
+                config,
+                unitPrefab,
+                formationRoot,
+                trackConfig,
+                GetComponentInParent<PlayerController>());
+        }
+
+        public void Initialize(
+            PlayerConfig trackConfig,
+            PlayerController playerControlRoot)
+        {
+            Initialize(
+                config,
+                unitPrefab,
+                formationRoot,
+                trackConfig,
+                playerControlRoot);
         }
 
         public void Initialize(
@@ -81,6 +102,21 @@ namespace ProjectGatefront.Gameplay.Squad
             SquadUnit squadUnitPrefab,
             Transform squadFormationRoot,
             PlayerConfig trackConfig)
+        {
+            Initialize(
+                squadConfig,
+                squadUnitPrefab,
+                squadFormationRoot,
+                trackConfig,
+                null);
+        }
+
+        public void Initialize(
+            SquadConfig squadConfig,
+            SquadUnit squadUnitPrefab,
+            Transform squadFormationRoot,
+            PlayerConfig trackConfig,
+            PlayerController playerControlRoot)
         {
             if (IsInitialized)
             {
@@ -99,28 +135,21 @@ namespace ProjectGatefront.Gameplay.Squad
             playerConfig = trackConfig != null
                 ? trackConfig
                 : throw new ArgumentNullException(nameof(trackConfig));
+            controlRoot = playerControlRoot;
 
-            int maxFollowerCount = Mathf.Max(0, config.MaxSquadSize - 1);
-            activeFollowers.Capacity = Mathf.Max(
-                activeFollowers.Capacity,
-                maxFollowerCount);
+            int maximumUnitCount = Mathf.Max(1, config.MaxSquadSize);
+            activeUnits.Capacity = Mathf.Max(
+                activeUnits.Capacity,
+                maximumUnitCount);
             formationSlots.Capacity = Mathf.Max(
                 formationSlots.Capacity,
-                maxFollowerCount);
-            pooledFollowers = new Stack<SquadUnit>(maxFollowerCount);
+                maximumUnitCount);
+            pooledUnits = new Stack<SquadUnit>(maximumUnitCount);
             IsInitialized = true;
 
-            int startingFollowerCount = ConfiguredStartingUnitCount - 1;
-            Prewarm(startingFollowerCount);
-            if (startingFollowerCount > 0)
-            {
-                AddUnits(startingFollowerCount);
-            }
-            else
-            {
-                RebuildFormation();
-                SquadCountChanged?.Invoke(CurrentUnitCount);
-            }
+            int startingUnitCount = ConfiguredStartingUnitCount;
+            Prewarm(startingUnitCount);
+            AddUnits(startingUnitCount);
         }
 
         public int AddUnit()
@@ -144,20 +173,15 @@ namespace ProjectGatefront.Gameplay.Squad
                 return 0;
             }
 
-            Vector3 spawnLocalPosition = new Vector3(
-                0f,
-                0f,
-                -config.RowSpacing);
-
             for (int index = 0; index < addCount; index++)
             {
-                SquadUnit unit = AcquireFollower();
+                SquadUnit unit = AcquireUnit();
                 unit.Activate(
                     formationRoot,
-                    spawnLocalPosition,
+                    Vector3.zero,
                     config.FormationTransitionSpeed,
                     config.UnitRotationSpeed);
-                activeFollowers.Add(unit);
+                activeUnits.Add(unit);
             }
 
             RebuildFormation();
@@ -177,7 +201,9 @@ namespace ProjectGatefront.Gameplay.Squad
                 return 0;
             }
 
-            int removeCount = Mathf.Min(count, activeFollowers.Count);
+            int removeCount = Mathf.Min(
+                count,
+                Mathf.Max(0, activeUnits.Count - 1));
             if (removeCount <= 0)
             {
                 return 0;
@@ -185,11 +211,11 @@ namespace ProjectGatefront.Gameplay.Squad
 
             for (int index = 0; index < removeCount; index++)
             {
-                int lastIndex = activeFollowers.Count - 1;
-                SquadUnit unit = activeFollowers[lastIndex];
-                activeFollowers.RemoveAt(lastIndex);
+                int lastIndex = activeUnits.Count - 1;
+                SquadUnit unit = activeUnits[lastIndex];
+                activeUnits.RemoveAt(lastIndex);
                 unit.Deactivate();
-                pooledFollowers.Push(unit);
+                pooledUnits.Push(unit);
             }
 
             RebuildFormation();
@@ -218,7 +244,7 @@ namespace ProjectGatefront.Gameplay.Squad
             }
         }
 
-        public void CopyActiveFollowersTo(List<SquadUnit> destination)
+        public void CopyActiveUnitsTo(List<SquadUnit> destination)
         {
             if (destination == null)
             {
@@ -226,9 +252,9 @@ namespace ProjectGatefront.Gameplay.Squad
             }
 
             destination.Clear();
-            for (int index = 0; index < activeFollowers.Count; index++)
+            for (int index = 0; index < activeUnits.Count; index++)
             {
-                destination.Add(activeFollowers[index]);
+                destination.Add(activeUnits[index]);
             }
         }
 
@@ -236,18 +262,18 @@ namespace ProjectGatefront.Gameplay.Squad
         {
             for (int index = 0; index < count; index++)
             {
-                pooledFollowers.Push(CreatePooledFollower());
+                pooledUnits.Push(CreatePooledUnit());
             }
         }
 
-        private SquadUnit AcquireFollower()
+        private SquadUnit AcquireUnit()
         {
-            return pooledFollowers.Count > 0
-                ? pooledFollowers.Pop()
-                : CreatePooledFollower();
+            return pooledUnits.Count > 0
+                ? pooledUnits.Pop()
+                : CreatePooledUnit();
         }
 
-        private SquadUnit CreatePooledFollower()
+        private SquadUnit CreatePooledUnit()
         {
             SquadUnit unit = Instantiate(unitPrefab, formationRoot);
             unit.gameObject.SetActive(false);
@@ -258,25 +284,27 @@ namespace ProjectGatefront.Gameplay.Squad
         {
             float maximumFormationHalfWidth = Mathf.Min(
                 config.MaximumFormationHalfWidth,
-                FollowerUsableTrackHalfWidth);
+                UnitUsableTrackHalfWidth);
             FormationCalculator.Calculate(
                 currentFormation,
-                activeFollowers.Count,
+                activeUnits.Count,
                 config.RowSpacing,
                 config.ColumnSpacing,
                 config.SpreadSpacingMultiplier,
+                config.CompactLateralSpacing,
+                config.CompactDepthSpacing,
                 config.MaxUnitsPerRow,
                 maximumFormationHalfWidth,
                 formationSlots);
 
             CacheIdealHorizontalBounds();
 
-            for (int index = 0; index < activeFollowers.Count; index++)
+            for (int index = 0; index < activeUnits.Count; index++)
             {
-                activeFollowers[index].SetFormationSlot(formationSlots[index]);
+                activeUnits[index].SetFormationSlot(formationSlots[index]);
             }
 
-            UpdateHorizontalContainment(true);
+            UpdateRootMovementRange();
 
             FormationRevision++;
         }
@@ -287,8 +315,6 @@ namespace ProjectGatefront.Gameplay.Squad
             {
                 return;
             }
-
-            UpdateHorizontalContainment(false);
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             HandleDevelopmentInput();
@@ -315,26 +341,23 @@ namespace ProjectGatefront.Gameplay.Squad
             }
         }
 
-        private void UpdateHorizontalContainment(bool force)
+        private void UpdateRootMovementRange()
         {
-            float correction = FormationBoundaryMath.CalculateHorizontalFormationCorrection(
-                activeFollowers.Count,
-                formationRoot.position.x,
+            FormationBoundaryMath.CalculateRootHorizontalRange(
                 idealLocalMinX,
                 idealLocalMaxX,
                 playerConfig.TrackHalfWidth,
                 config.UnitBoundaryRadius,
-                playerConfig.TrackBoundaryPadding);
-
-            if (!force && Mathf.Approximately(correction, CurrentHorizontalCorrection))
+                playerConfig.TrackBoundaryPadding,
+                out float minimumRootX,
+                out float maximumRootX);
+            MinimumRootX = minimumRootX;
+            MaximumRootX = maximumRootX;
+            if (controlRoot != null)
             {
-                return;
-            }
-
-            CurrentHorizontalCorrection = correction;
-            for (int index = 0; index < activeFollowers.Count; index++)
-            {
-                activeFollowers[index].SetHorizontalWorldCorrection(correction);
+                controlRoot.SetHorizontalMovementRange(
+                    MinimumRootX,
+                    MaximumRootX);
             }
         }
 
@@ -354,17 +377,21 @@ namespace ProjectGatefront.Gameplay.Squad
 
             if (keyboard.digit1Key.wasPressedThisFrame)
             {
-                SetFormation(FormationType.Line);
+                SetFormation(FormationType.Compact);
             }
             else if (keyboard.digit2Key.wasPressedThisFrame)
             {
-                SetFormation(FormationType.Wedge);
+                SetFormation(FormationType.Line);
             }
             else if (keyboard.digit3Key.wasPressedThisFrame)
             {
-                SetFormation(FormationType.Column);
+                SetFormation(FormationType.Wedge);
             }
             else if (keyboard.digit4Key.wasPressedThisFrame)
+            {
+                SetFormation(FormationType.Column);
+            }
+            else if (keyboard.digit5Key.wasPressedThisFrame)
             {
                 SetFormation(FormationType.Spread);
             }
@@ -393,8 +420,9 @@ namespace ProjectGatefront.Gameplay.Squad
             }
 
             GUI.Box(
-                new Rect(12f, 12f, 190f, 58f),
-                $"Squad: {CurrentUnitCount}\nFormation: {CurrentFormation}");
+                new Rect(12f, 12f, 310f, 78f),
+                $"Squad: {CurrentUnitCount}\nFormation: {CurrentFormation}"
+                + "\n1 Compact  2 Line  3 Wedge  4 Column  5 Spread");
         }
 #endif
 
@@ -407,15 +435,15 @@ namespace ProjectGatefront.Gameplay.Squad
 
             if (!IsInitialized)
             {
-                int previewFollowerCount = Mathf.Max(
-                    0,
-                    ConfiguredStartingUnitCount - 1);
+                int previewUnitCount = ConfiguredStartingUnitCount;
                 FormationCalculator.Calculate(
                     currentFormation,
-                    previewFollowerCount,
+                    previewUnitCount,
                     config.RowSpacing,
                     config.ColumnSpacing,
                     config.SpreadSpacingMultiplier,
+                    config.CompactLateralSpacing,
+                    config.CompactDepthSpacing,
                     config.MaxUnitsPerRow,
                     config.MaximumFormationHalfWidth,
                     formationSlots);
@@ -428,7 +456,6 @@ namespace ProjectGatefront.Gameplay.Squad
             {
                 Vector3 slotWorldPosition = root.TransformPoint(
                     formationSlots[index].LocalPosition);
-                slotWorldPosition.x += CurrentHorizontalCorrection;
                 Gizmos.DrawWireSphere(
                     slotWorldPosition + (Vector3.up * 0.12f),
                     0.16f);
@@ -439,7 +466,7 @@ namespace ProjectGatefront.Gameplay.Squad
                 const float gizmoLength = 30f;
                 float zStart = root.position.z - (gizmoLength * 0.5f);
                 float zEnd = root.position.z + (gizmoLength * 0.5f);
-                float usableHalfWidth = FollowerUsableTrackHalfWidth;
+                float usableHalfWidth = UnitUsableTrackHalfWidth;
                 Gizmos.color = new Color(1f, 0.25f, 0.75f, 0.9f);
                 Gizmos.DrawLine(
                     new Vector3(-usableHalfWidth, 0.08f, zStart),

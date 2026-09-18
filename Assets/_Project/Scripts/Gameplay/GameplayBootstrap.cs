@@ -2,6 +2,7 @@ using ProjectGatefront.Core;
 using ProjectGatefront.Data;
 using ProjectGatefront.Gameplay.Player;
 using ProjectGatefront.Gameplay.Squad;
+using ProjectGatefront.Gameplay.World;
 using UnityEngine;
 
 namespace ProjectGatefront.Gameplay
@@ -15,6 +16,8 @@ namespace ProjectGatefront.Gameplay
         [SerializeField] private Transform cameraTarget;
         [SerializeField] private SquadConfig squadConfig;
         [SerializeField] private SquadController squadController;
+        [SerializeField] private GameBalanceConfig gameBalanceConfig;
+        [SerializeField] private WorldScroller worldScroller;
         [SerializeField] private bool movementEnabledOnStart = true;
 
         public bool IsInitialized { get; private set; }
@@ -44,6 +47,14 @@ namespace ProjectGatefront.Gameplay
             squadController = controller;
         }
 
+        public void ConfigureWorld(
+            GameBalanceConfig balanceConfig,
+            WorldScroller scroller)
+        {
+            gameBalanceConfig = balanceConfig;
+            worldScroller = scroller;
+        }
+
         public void Initialize()
         {
             if (IsInitialized)
@@ -56,7 +67,9 @@ namespace ProjectGatefront.Gameplay
                 || runnerCamera == null
                 || cameraTarget == null
                 || squadConfig == null
-                || squadController == null)
+                || squadController == null
+                || gameBalanceConfig == null
+                || worldScroller == null)
             {
                 GameLog.Error(
                     "GameplayBootstrap is missing required scene references.",
@@ -67,8 +80,11 @@ namespace ProjectGatefront.Gameplay
 
             playerController.Initialize(playerConfig, new PointerDragInputSource());
             runnerCamera.Initialize(cameraTarget);
-            squadController.Initialize(playerConfig);
+            squadController.Initialize(playerConfig, playerController);
+            worldScroller.Initialize();
             playerController.SetMovementEnabled(movementEnabledOnStart);
+            runnerCamera.SetFollowEnabled(movementEnabledOnStart);
+            worldScroller.SetScrollingEnabled(movementEnabledOnStart);
             IsInitialized = true;
         }
 
@@ -76,6 +92,7 @@ namespace ProjectGatefront.Gameplay
         {
             playerController.SetMovementEnabled(enabled);
             runnerCamera.SetFollowEnabled(enabled);
+            worldScroller.SetScrollingEnabled(enabled);
         }
     }
 }

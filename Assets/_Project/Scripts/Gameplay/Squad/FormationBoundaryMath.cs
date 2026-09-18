@@ -24,21 +24,15 @@ namespace ProjectGatefront.Gameplay.Squad
                 safeTrackHalfWidth - safeUnitRadius - safePadding);
         }
 
-        public static float CalculateHorizontalFormationCorrection(
-            int followerCount,
-            float leaderWorldX,
+        public static void CalculateRootHorizontalRange(
             float idealLocalMinX,
             float idealLocalMaxX,
             float trackHalfWidth,
             float unitBoundaryRadius,
-            float boundaryPadding)
+            float boundaryPadding,
+            out float minimumRootX,
+            out float maximumRootX)
         {
-            if (followerCount <= 0)
-            {
-                return 0f;
-            }
-
-            float safeLeaderWorldX = IsFinite(leaderWorldX) ? leaderWorldX : 0f;
             float safeLocalMinX = IsFinite(idealLocalMinX) ? idealLocalMinX : 0f;
             float safeLocalMaxX = IsFinite(idealLocalMaxX) ? idealLocalMaxX : 0f;
             float localMinX = Mathf.Min(safeLocalMinX, safeLocalMaxX);
@@ -47,29 +41,17 @@ namespace ProjectGatefront.Gameplay.Squad
                 trackHalfWidth,
                 unitBoundaryRadius,
                 boundaryPadding);
+            minimumRootX = -usableHalfWidth - localMinX;
+            maximumRootX = usableHalfWidth - localMaxX;
 
-            float intendedMinX = safeLeaderWorldX + localMinX;
-            float intendedMaxX = safeLeaderWorldX + localMaxX;
-            float usableWidth = usableHalfWidth * 2f;
-            float formationWidth = intendedMaxX - intendedMinX;
-
-            if (formationWidth > usableWidth)
+            if (minimumRootX <= maximumRootX)
             {
-                float intendedCenterX = (intendedMinX + intendedMaxX) * 0.5f;
-                return IsFinite(intendedCenterX) ? -intendedCenterX : 0f;
+                return;
             }
 
-            if (intendedMinX < -usableHalfWidth)
-            {
-                return -usableHalfWidth - intendedMinX;
-            }
-
-            if (intendedMaxX > usableHalfWidth)
-            {
-                return usableHalfWidth - intendedMaxX;
-            }
-
-            return 0f;
+            float centeredRootX = (minimumRootX + maximumRootX) * 0.5f;
+            minimumRootX = centeredRootX;
+            maximumRootX = centeredRootX;
         }
 
         private static bool IsFinite(float value)

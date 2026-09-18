@@ -7,14 +7,14 @@ namespace ProjectGatefront.Gameplay.Squad
     {
         private Transform formationRoot;
         private Vector3 targetLocalPosition;
-        private float horizontalWorldCorrection;
-        private Vector3 smoothedWorldPosition;
         private float transitionSpeed;
         private float rotationSpeed;
 
         public int SlotIndex { get; private set; } = -1;
 
         public bool IsActive => gameObject.activeSelf;
+
+        public Vector3 TargetLocalPosition => targetLocalPosition;
 
         private void LateUpdate()
         {
@@ -23,17 +23,13 @@ namespace ProjectGatefront.Gameplay.Squad
                 return;
             }
 
-            Vector3 targetWorldPosition =
-                formationRoot.TransformPoint(targetLocalPosition);
-            targetWorldPosition.x += horizontalWorldCorrection;
-            smoothedWorldPosition = Vector3.MoveTowards(
-                smoothedWorldPosition,
-                targetWorldPosition,
+            transform.localPosition = Vector3.MoveTowards(
+                transform.localPosition,
+                targetLocalPosition,
                 transitionSpeed * Time.deltaTime);
-            transform.position = smoothedWorldPosition;
-            transform.rotation = Quaternion.RotateTowards(
-                transform.rotation,
-                formationRoot.rotation,
+            transform.localRotation = Quaternion.RotateTowards(
+                transform.localRotation,
+                Quaternion.identity,
                 rotationSpeed * Time.deltaTime);
         }
 
@@ -46,9 +42,9 @@ namespace ProjectGatefront.Gameplay.Squad
             formationRoot = root;
             transitionSpeed = movementSpeed;
             rotationSpeed = facingSpeed;
-            smoothedWorldPosition = root.TransformPoint(spawnLocalPosition);
-            transform.position = smoothedWorldPosition;
-            transform.rotation = root.rotation;
+            transform.SetParent(root, false);
+            transform.localPosition = spawnLocalPosition;
+            transform.localRotation = Quaternion.identity;
             gameObject.SetActive(true);
         }
 
@@ -58,16 +54,10 @@ namespace ProjectGatefront.Gameplay.Squad
             targetLocalPosition = slot.LocalPosition;
         }
 
-        public void SetHorizontalWorldCorrection(float correction)
-        {
-            horizontalWorldCorrection = correction;
-        }
-
         public void Deactivate()
         {
             SlotIndex = -1;
             formationRoot = null;
-            horizontalWorldCorrection = 0f;
             gameObject.SetActive(false);
         }
     }
