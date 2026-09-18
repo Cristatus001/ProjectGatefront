@@ -15,7 +15,7 @@ namespace ProjectGatefront.Gameplay.Squad
         [SerializeField] private SquadConfig config;
         [SerializeField] private SquadUnit unitPrefab;
         [SerializeField] private Transform formationRoot;
-        [SerializeField] private FormationType currentFormation = FormationType.Line;
+        [SerializeField] private FormationType currentFormation = FormationType.Compact;
 
         [Header("Development")]
         [SerializeField] private bool debugControlsEnabled = true;
@@ -354,17 +354,21 @@ namespace ProjectGatefront.Gameplay.Squad
 
             if (keyboard.digit1Key.wasPressedThisFrame)
             {
-                SetFormation(FormationType.Line);
+                SetFormation(FormationType.Compact);
             }
             else if (keyboard.digit2Key.wasPressedThisFrame)
             {
-                SetFormation(FormationType.Wedge);
+                SetFormation(FormationType.Line);
             }
             else if (keyboard.digit3Key.wasPressedThisFrame)
             {
-                SetFormation(FormationType.Column);
+                SetFormation(FormationType.Wedge);
             }
             else if (keyboard.digit4Key.wasPressedThisFrame)
+            {
+                SetFormation(FormationType.Column);
+            }
+            else if (keyboard.digit5Key.wasPressedThisFrame)
             {
                 SetFormation(FormationType.Spread);
             }
@@ -393,8 +397,9 @@ namespace ProjectGatefront.Gameplay.Squad
             }
 
             GUI.Box(
-                new Rect(12f, 12f, 190f, 58f),
-                $"Squad: {CurrentUnitCount}\nFormation: {CurrentFormation}");
+                new Rect(12f, 12f, 310f, 78f),
+                $"Squad: {CurrentUnitCount}\nFormation: {CurrentFormation}"
+                + "\n1 Compact  2 Line  3 Wedge  4 Column  5 Spread");
         }
 #endif
 

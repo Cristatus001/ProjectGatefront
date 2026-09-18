@@ -6,17 +6,20 @@ namespace ProjectGatefront.Gameplay.Player
     [DisallowMultipleComponent]
     public sealed class RunnerCameraController : MonoBehaviour
     {
-        [Tooltip("World-space camera offset from the camera target.")]
-        [SerializeField] private Vector3 offset = new Vector3(0f, 7.5f, -10f);
+        [Tooltip("Stable world-space camera position for portrait combat framing.")]
+        [SerializeField] private Vector3 fixedPosition = new Vector3(0f, 8.85f, -7.6f);
 
-        [Tooltip("Time used to smooth camera position changes.")]
-        [SerializeField, Min(0.01f)] private float followSmoothTime = 0.16f;
+        [Tooltip("World-space offset from the combat anchor used as the fixed look point.")]
+        [SerializeField] private Vector3 lookTargetOffset = new Vector3(0f, 0f, 9.5f);
 
-        [Tooltip("Distance ahead of the player used to establish the fixed runner viewing angle.")]
-        [SerializeField, Min(0f)] private float lookAheadDistance = 7.5f;
+        [Tooltip("Fraction of player horizontal movement applied to the camera position.")]
+        [SerializeField, Range(0f, 1f)] private float horizontalFollowAmount;
+
+        [Tooltip("Time used to smooth the optional horizontal camera follow.")]
+        [SerializeField, Min(0.01f)] private float horizontalSmoothTime = 0.16f;
 
         [SerializeField] private Transform followTarget;
-        private Vector3 followVelocity;
+        private float horizontalVelocity;
         private bool followEnabled;
 
         public bool IsInitialized => followTarget != null;
@@ -28,14 +31,19 @@ namespace ProjectGatefront.Gameplay.Player
                 return;
             }
 
-            Vector3 desiredPosition = followTarget.position + offset;
-            transform.position = Vector3.SmoothDamp(
-                transform.position,
-                desiredPosition,
-                ref followVelocity,
-                followSmoothTime,
+            float desiredX = fixedPosition.x
+                + (followTarget.position.x * horizontalFollowAmount);
+            float smoothedX = Mathf.SmoothDamp(
+                transform.position.x,
+                desiredX,
+                ref horizontalVelocity,
+                horizontalSmoothTime,
                 Mathf.Infinity,
                 Time.deltaTime);
+            transform.position = new Vector3(
+                smoothedX,
+                fixedPosition.y,
+                fixedPosition.z);
         }
 
         public void Initialize(Transform target)
@@ -44,8 +52,8 @@ namespace ProjectGatefront.Gameplay.Player
                 ? target
                 : throw new ArgumentNullException(nameof(target));
 
-            followVelocity = Vector3.zero;
-            transform.position = followTarget.position + offset;
+            horizontalVelocity = 0f;
+            transform.position = fixedPosition;
             ApplyFixedRotation();
             followEnabled = true;
         }
@@ -53,16 +61,32 @@ namespace ProjectGatefront.Gameplay.Player
         public void SetFollowEnabled(bool enabled)
         {
             followEnabled = enabled;
-            followVelocity = Vector3.zero;
+            horizontalVelocity = 0f;
         }
 
         private void ApplyFixedRotation()
         {
-            Vector3 viewDirection = (Vector3.forward * lookAheadDistance) - offset;
+            Vector3 anchorPosition = followTarget == null
+                ? new Vector3(0f, 1.35f, 2f)
+                : followTarget.position;
+            anchorPosition.x = 0f;
+            Vector3 viewDirection = anchorPosition + lookTargetOffset - fixedPosition;
             if (viewDirection.sqrMagnitude > 0.001f)
             {
                 transform.rotation = Quaternion.LookRotation(viewDirection, Vector3.up);
             }
+        }
+
+        public void ConfigureFixedPresentation(
+            Vector3 position,
+            Vector3 targetOffset,
+            float followAmount,
+            float smoothTime)
+        {
+            fixedPosition = position;
+            lookTargetOffset = targetOffset;
+            horizontalFollowAmount = Mathf.Clamp01(followAmount);
+            horizontalSmoothTime = Mathf.Max(0.01f, smoothTime);
         }
 
         private void OnValidate()
@@ -78,8 +102,10 @@ namespace ProjectGatefront.Gameplay.Player
             }
 
             Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(followTarget.position, 0.2f);
-            Gizmos.DrawLine(transform.position, followTarget.position);
+            Vector3 lookPoint = followTarget.position + lookTargetOffset;
+            lookPoint.x = 0f;
+            Gizmos.DrawWireSphere(lookPoint, 0.2f);
+            Gizmos.DrawLine(transform.position, lookPoint);
         }
     }
 }

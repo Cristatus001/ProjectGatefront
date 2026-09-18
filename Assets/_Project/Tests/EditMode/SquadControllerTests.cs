@@ -53,6 +53,12 @@ namespace ProjectGatefront.Tests.EditMode
         }
 
         [Test]
+        public void Initialize_UsesCompactFormationByDefault()
+        {
+            Assert.That(controller.CurrentFormation, Is.EqualTo(FormationType.Compact));
+        }
+
+        [Test]
         public void RemoveUnits_DecreasesTotalCombatantCount()
         {
             int initialCount = controller.CurrentUnitCount;

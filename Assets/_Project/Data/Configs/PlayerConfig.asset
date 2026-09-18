@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: ProjectGatefront.Data::ProjectGatefront.Data.PlayerConfig
   designerNotes: 
   maximumHealth: 100
-  forwardSpeed: 8
+  combatAnchorZ: 2
   lateralSensitivity: 10
   lateralSmoothTime: 0.08
   trackHalfWidth: 4.25

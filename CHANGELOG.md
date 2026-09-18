@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.5-dev
+
+- Reworked gameplay to fixed squad / moving world presentation
+- Added world scrolling system
+- Added virtual travelled distance
+- Added recycled track chunks
+- Added Compact squad formation
+- Reworked camera for fixed combat framing
+- Preserved tactical formations and boundary containment
+
 ## 0.3.0-dev
 
 - Added squad controller

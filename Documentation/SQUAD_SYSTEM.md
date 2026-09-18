@@ -2,7 +2,7 @@
 
 ## Squad anchor
 
-PlayerRoot remains the movement-controlled squad leader. SquadRoot is a direct child
+PlayerRoot remains the horizontally controlled squad leader. SquadRoot is a direct child
 of PlayerRoot and defines the local coordinate space for formation slots:
 
 - +Z is forward
@@ -11,7 +11,9 @@ of PlayerRoot and defines the local coordinate space for formation slots:
 
 Followers target positions behind the leader in negative local Z. SquadUnit smooths
 world position toward its assigned local slot, which allows visible follow motion
-when the anchor moves laterally.
+when the fixed combat anchor moves laterally. Formation Z offsets now represent
+formation depth only; continuous forward progress belongs to the moving world and
+its virtual distance.
 
 ## Leader counting convention
 
@@ -35,10 +37,16 @@ systems without exposing the mutable internal list.
 
 ## Formations
 
+- Compact is the default combat formation. It fills deterministic center-first rows
+  using dense spacing, grows outward gradually, and remains readable at 5, 10, 20,
+  and 50 total combatants.
 - Line uses compact centered rows with a configurable row capacity.
 - Wedge begins with a narrow apex, then adds left/right pairs farther back.
 - Column uses one or two narrow columns and extends backward.
 - Spread uses wider horizontal and longitudinal spacing across centered rows.
+
+Line, Wedge, Column, and Spread remain available for future tactical gameplay. The
+Phase 3.5 prototype does not yet assign combat effects to formation choice.
 
 All formation types clamp local X to maximumFormationHalfWidth. When the requested
 row width would exceed that value, row capacity or spacing adapts instead of placing
@@ -77,10 +85,11 @@ standard followers share MAT_PrototypeSquadUnit.
 
 These controls compile only in the Unity Editor or development builds:
 
-- 1 — Line
-- 2 — Wedge
-- 3 — Column
-- 4 — Spread
+- 1 — Compact
+- 2 — Line
+- 3 — Wedge
+- 4 — Column
+- 5 — Spread
 - = — add one combatant
 - - — remove one combatant
 - Shift + = / - — add or remove five

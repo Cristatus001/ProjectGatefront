@@ -35,6 +35,16 @@ namespace ProjectGatefront.Gameplay.Squad
 
             switch (formationType)
             {
+                case FormationType.Compact:
+                    CalculateCompact(
+                        slotCount,
+                        safeRowSpacing,
+                        safeColumnSpacing,
+                        safeMaxUnitsPerRow,
+                        safeHalfWidth,
+                        results);
+                    break;
+
                 case FormationType.Line:
                     CalculateRows(
                         slotCount,
@@ -78,6 +88,62 @@ namespace ProjectGatefront.Gameplay.Squad
                         nameof(formationType),
                         formationType,
                         "Unsupported formation type.");
+            }
+        }
+
+        private static void CalculateCompact(
+            int slotCount,
+            float rowSpacing,
+            float columnSpacing,
+            int maxUnitsPerRow,
+            float maximumHalfWidth,
+            List<FormationSlot> results)
+        {
+            const float compactSpacingMultiplier = 0.78f;
+            float compactRowSpacing = rowSpacing * compactSpacingMultiplier;
+            float compactColumnSpacing = columnSpacing * compactSpacingMultiplier;
+            int remaining = slotCount;
+            int slotIndex = 0;
+            int row = 0;
+
+            while (remaining > 0)
+            {
+                int requestedCapacity;
+                if (row == 0)
+                {
+                    requestedCapacity = 3;
+                }
+                else if (row % 2 == 1)
+                {
+                    requestedCapacity = 4;
+                }
+                else
+                {
+                    requestedCapacity = 5;
+                }
+
+                int rowCapacity = CalculateRowCapacity(
+                    Mathf.Min(maxUnitsPerRow, requestedCapacity),
+                    compactColumnSpacing,
+                    maximumHalfWidth);
+                int unitsInRow = Mathf.Min(rowCapacity, remaining);
+                float spacing = CalculateCenteredSpacing(
+                    unitsInRow,
+                    compactColumnSpacing,
+                    maximumHalfWidth);
+
+                for (int order = 0; order < unitsInRow; order++)
+                {
+                    float x = CalculateCenterFirstX(order, unitsInRow, spacing);
+                    float z = -(row + 1) * compactRowSpacing;
+                    results.Add(new FormationSlot(
+                        slotIndex,
+                        new Vector3(x, 0f, z)));
+                    slotIndex++;
+                }
+
+                remaining -= unitsInRow;
+                row++;
             }
         }
 
@@ -186,9 +252,46 @@ namespace ProjectGatefront.Gameplay.Squad
                 return 0f;
             }
 
-            float availableSpacing = (maximumHalfWidth * 2f) / (unitsInRow - 1);
-            float spacing = Mathf.Min(columnSpacing, availableSpacing);
+            float spacing = CalculateCenteredSpacing(
+                unitsInRow,
+                columnSpacing,
+                maximumHalfWidth);
             return (column - ((unitsInRow - 1) * 0.5f)) * spacing;
+        }
+
+        private static float CalculateCenteredSpacing(
+            int unitsInRow,
+            float columnSpacing,
+            float maximumHalfWidth)
+        {
+            if (unitsInRow <= 1)
+            {
+                return 0f;
+            }
+
+            float availableSpacing = (maximumHalfWidth * 2f) / (unitsInRow - 1);
+            return Mathf.Min(columnSpacing, availableSpacing);
+        }
+
+        private static float CalculateCenterFirstX(
+            int order,
+            int rowCapacity,
+            float spacing)
+        {
+            if (rowCapacity % 2 == 1)
+            {
+                if (order == 0)
+                {
+                    return 0f;
+                }
+
+                int step = (order + 1) / 2;
+                return (order % 2 == 1 ? -step : step) * spacing;
+            }
+
+            int evenStep = order / 2;
+            float magnitude = (evenStep + 0.5f) * spacing;
+            return order % 2 == 0 ? -magnitude : magnitude;
         }
     }
 }

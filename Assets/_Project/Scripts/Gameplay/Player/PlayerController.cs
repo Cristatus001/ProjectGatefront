@@ -36,9 +36,7 @@ namespace ProjectGatefront.Gameplay.Player
                 config.LeaderBoundaryRadius,
                 config.TrackBoundaryPadding);
 
-        public float CurrentForwardSpeed => movementEnabled && config != null
-            ? config.ForwardSpeed
-            : 0f;
+        public float CombatAnchorZ => config == null ? transform.position.z : config.CombatAnchorZ;
 
         public float CurrentDragDelta { get; private set; }
 
@@ -88,7 +86,7 @@ namespace ProjectGatefront.Gameplay.Player
             Vector3 motion = new Vector3(
                 nextHorizontal - transform.position.x,
                 0f,
-                config.ForwardSpeed * Time.deltaTime);
+                config.CombatAnchorZ - transform.position.z);
 
             characterController.Move(motion);
         }
@@ -97,6 +95,9 @@ namespace ProjectGatefront.Gameplay.Player
         {
             config = playerConfig ?? throw new ArgumentNullException(nameof(playerConfig));
             inputSource = playerInputSource ?? throw new ArgumentNullException(nameof(playerInputSource));
+            Vector3 anchoredPosition = transform.position;
+            anchoredPosition.z = config.CombatAnchorZ;
+            transform.position = anchoredPosition;
             lateralTarget = PlayerMovementMath.ClampHorizontal(
                 transform.position.x,
                 LeaderUsableTrackHalfWidth);

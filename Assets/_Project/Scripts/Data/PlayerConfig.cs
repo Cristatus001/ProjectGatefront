@@ -7,8 +7,8 @@ namespace ProjectGatefront.Data
     {
         [SerializeField, Min(1f)] private float maximumHealth = 100f;
 
-        [Tooltip("Automatic movement speed along the world +Z axis, in units per second.")]
-        [SerializeField, Min(0f)] private float forwardSpeed = 8f;
+        [Tooltip("Stable world Z position used by the player and squad combat anchor.")]
+        [SerializeField] private float combatAnchorZ = 2f;
 
         [Tooltip("World-space lateral distance produced by dragging across the full screen width.")]
         [SerializeField, Min(0f)] private float lateralSensitivity = 10f;
@@ -30,7 +30,7 @@ namespace ProjectGatefront.Data
 
         public float MaximumHealth => maximumHealth;
 
-        public float ForwardSpeed => forwardSpeed;
+        public float CombatAnchorZ => combatAnchorZ;
 
         public float LateralSensitivity => lateralSensitivity;
 

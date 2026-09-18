@@ -153,6 +153,7 @@ namespace ProjectGatefront.Tests.EditMode
             Assert.That(float.IsInfinity(correction), Is.False);
         }
 
+        [TestCase(FormationType.Compact)]
         [TestCase(FormationType.Line)]
         [TestCase(FormationType.Wedge)]
         [TestCase(FormationType.Column)]
