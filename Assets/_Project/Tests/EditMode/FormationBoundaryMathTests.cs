@@ -8,7 +8,7 @@ namespace ProjectGatefront.Tests.EditMode
     public sealed class FormationBoundaryMathTests
     {
         private const float TrackHalfWidth = 4.25f;
-        private const float UnitRadius = 0.21f;
+        private const float UnitRadius = 0.34f;
         private const float Padding = 0.08f;
         private const float Tolerance = 0.0001f;
 
@@ -175,6 +175,8 @@ namespace ProjectGatefront.Tests.EditMode
                     1.35f,
                     1.1f,
                     1.6f,
+                    1.15f,
+                    0.72f,
                     5,
                     Mathf.Min(3.7f, UsableHalfWidth),
                     slots);

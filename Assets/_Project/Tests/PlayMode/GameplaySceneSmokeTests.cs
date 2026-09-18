@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using NUnit.Framework;
 using ProjectGatefront.Gameplay;
 using ProjectGatefront.Gameplay.Player;
@@ -48,6 +49,15 @@ namespace ProjectGatefront.Tests.PlayMode
             Assert.That(
                 squadController.FormationSlotCount,
                 Is.EqualTo(squadController.CurrentUnitCount - 1));
+
+            var activeFollowers = new List<SquadUnit>();
+            squadController.CopyActiveFollowersTo(activeFollowers);
+            Assert.That(activeFollowers, Is.Not.Empty);
+            Transform followerVisual = activeFollowers[0].transform.Find("Visual");
+            Assert.That(followerVisual, Is.Not.Null);
+            Assert.That(followerVisual.Find("Body"), Is.Not.Null);
+            Assert.That(followerVisual.Find("HeadMarker"), Is.Not.Null);
+            Assert.That(followerVisual.Find("ForwardMarker"), Is.Not.Null);
 
             float startingForwardPosition = player.transform.position.z;
             float startingChunkPosition = scrollItems[0].transform.position.z;
@@ -113,6 +123,14 @@ namespace ProjectGatefront.Tests.PlayMode
                     chunkPositions[index] - chunkPositions[index - 1],
                     Is.EqualTo(30f).Within(0.001f));
             }
+
+            Assert.That(squadController.SetFormation(FormationType.Column), Is.True);
+            Assert.That(squadController.SetFormation(FormationType.Line), Is.True);
+            Assert.That(squadController.SetFormation(FormationType.Wedge), Is.True);
+            Assert.That(squadController.SetFormation(FormationType.Compact), Is.True);
+            Assert.That(
+                squadController.CurrentFormation,
+                Is.EqualTo(FormationType.Compact));
             characterController.enabled = true;
         }
     }

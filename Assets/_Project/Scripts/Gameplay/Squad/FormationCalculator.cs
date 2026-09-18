@@ -12,6 +12,8 @@ namespace ProjectGatefront.Gameplay.Squad
             float rowSpacing,
             float columnSpacing,
             float spreadSpacingMultiplier,
+            float compactLateralSpacing,
+            float compactDepthSpacing,
             int maxUnitsPerRow,
             float maximumHalfWidth,
             List<FormationSlot> results)
@@ -30,6 +32,12 @@ namespace ProjectGatefront.Gameplay.Squad
             float safeRowSpacing = Mathf.Max(0.1f, rowSpacing);
             float safeColumnSpacing = Mathf.Max(0.1f, columnSpacing);
             float safeSpreadMultiplier = Mathf.Max(1f, spreadSpacingMultiplier);
+            float safeCompactLateralSpacing = Mathf.Max(
+                0.1f,
+                compactLateralSpacing);
+            float safeCompactDepthSpacing = Mathf.Max(
+                0.1f,
+                compactDepthSpacing);
             int safeMaxUnitsPerRow = Mathf.Max(1, maxUnitsPerRow);
             float safeHalfWidth = Mathf.Max(0f, maximumHalfWidth);
 
@@ -38,9 +46,8 @@ namespace ProjectGatefront.Gameplay.Squad
                 case FormationType.Compact:
                     CalculateCompact(
                         slotCount,
-                        safeRowSpacing,
-                        safeColumnSpacing,
-                        safeMaxUnitsPerRow,
+                        safeCompactLateralSpacing,
+                        safeCompactDepthSpacing,
                         safeHalfWidth,
                         results);
                     break;
@@ -93,58 +100,181 @@ namespace ProjectGatefront.Gameplay.Squad
 
         private static void CalculateCompact(
             int slotCount,
-            float rowSpacing,
-            float columnSpacing,
-            int maxUnitsPerRow,
+            float lateralSpacing,
+            float depthSpacing,
             float maximumHalfWidth,
             List<FormationSlot> results)
         {
-            const float compactSpacingMultiplier = 0.78f;
-            float compactRowSpacing = rowSpacing * compactSpacingMultiplier;
-            float compactColumnSpacing = columnSpacing * compactSpacingMultiplier;
-            int remaining = slotCount;
             int slotIndex = 0;
-            int row = 0;
+            AddCompactPair(
+                lateralSpacing,
+                -depthSpacing * 0.15f,
+                slotCount,
+                depthSpacing,
+                maximumHalfWidth,
+                results,
+                ref slotIndex);
+            AddCompactPair(
+                lateralSpacing * 0.55f,
+                -depthSpacing * 0.9f,
+                slotCount,
+                depthSpacing,
+                maximumHalfWidth,
+                results,
+                ref slotIndex);
+            AddCompactPair(
+                lateralSpacing * 2f,
+                -depthSpacing * 0.4f,
+                slotCount,
+                depthSpacing,
+                maximumHalfWidth,
+                results,
+                ref slotIndex);
 
-            while (remaining > 0)
+            int row = 0;
+            while (slotIndex < slotCount)
             {
-                int requestedCapacity;
+                int rowStartIndex = slotIndex;
+                float rowDepth = -(1.8f + row) * depthSpacing;
+                bool halfOffsetRow = row % 2 == 1;
+
                 if (row == 0)
                 {
-                    requestedCapacity = 3;
+                    AddCompactSlot(
+                        0f,
+                        rowDepth,
+                        slotCount,
+                        depthSpacing,
+                        maximumHalfWidth,
+                        results,
+                        ref slotIndex);
                 }
-                else if (row % 2 == 1)
+
+                if (!halfOffsetRow)
                 {
-                    requestedCapacity = 4;
+                    for (int step = 1;
+                        step * lateralSpacing <= maximumHalfWidth + 0.0001f
+                            && slotIndex < slotCount;
+                        step++)
+                    {
+                        AddCompactPair(
+                            step * lateralSpacing,
+                            rowDepth,
+                            slotCount,
+                            depthSpacing,
+                            maximumHalfWidth,
+                            results,
+                            ref slotIndex);
+                    }
                 }
                 else
                 {
-                    requestedCapacity = 5;
+                    for (int step = 0;
+                        (step + 0.5f) * lateralSpacing
+                                <= maximumHalfWidth + 0.0001f
+                            && slotIndex < slotCount;
+                        step++)
+                    {
+                        AddCompactPair(
+                            (step + 0.5f) * lateralSpacing,
+                            rowDepth,
+                            slotCount,
+                            depthSpacing,
+                            maximumHalfWidth,
+                            results,
+                            ref slotIndex);
+                    }
                 }
 
-                int rowCapacity = CalculateRowCapacity(
-                    Mathf.Min(maxUnitsPerRow, requestedCapacity),
-                    compactColumnSpacing,
-                    maximumHalfWidth);
-                int unitsInRow = Mathf.Min(rowCapacity, remaining);
-                float spacing = CalculateCenteredSpacing(
-                    unitsInRow,
-                    compactColumnSpacing,
-                    maximumHalfWidth);
-
-                for (int order = 0; order < unitsInRow; order++)
+                if (slotIndex == rowStartIndex)
                 {
-                    float x = CalculateCenterFirstX(order, unitsInRow, spacing);
-                    float z = -(row + 1) * compactRowSpacing;
-                    results.Add(new FormationSlot(
-                        slotIndex,
-                        new Vector3(x, 0f, z)));
-                    slotIndex++;
+                    AddCompactSlot(
+                        0f,
+                        rowDepth,
+                        slotCount,
+                        depthSpacing,
+                        maximumHalfWidth,
+                        results,
+                        ref slotIndex);
                 }
 
-                remaining -= unitsInRow;
                 row++;
             }
+        }
+
+        private static void AddCompactPair(
+            float lateralOffset,
+            float baseDepth,
+            int slotCount,
+            float depthSpacing,
+            float maximumHalfWidth,
+            List<FormationSlot> results,
+            ref int slotIndex)
+        {
+            float safeOffset = Mathf.Min(
+                Mathf.Abs(lateralOffset),
+                maximumHalfWidth);
+            if (safeOffset <= 0.0001f)
+            {
+                AddCompactSlot(
+                    0f,
+                    baseDepth,
+                    slotCount,
+                    depthSpacing,
+                    maximumHalfWidth,
+                    results,
+                    ref slotIndex);
+                return;
+            }
+
+            AddCompactSlot(
+                -safeOffset,
+                baseDepth,
+                slotCount,
+                depthSpacing,
+                maximumHalfWidth,
+                results,
+                ref slotIndex);
+            AddCompactSlot(
+                safeOffset,
+                baseDepth,
+                slotCount,
+                depthSpacing,
+                maximumHalfWidth,
+                results,
+                ref slotIndex);
+        }
+
+        private static void AddCompactSlot(
+            float x,
+            float baseDepth,
+            int slotCount,
+            float depthSpacing,
+            float maximumHalfWidth,
+            List<FormationSlot> results,
+            ref int slotIndex)
+        {
+            if (slotIndex >= slotCount)
+            {
+                return;
+            }
+
+            float clampedX = Mathf.Clamp(
+                x,
+                -maximumHalfWidth,
+                maximumHalfWidth);
+            float normalizedLateral = maximumHalfWidth > 0.0001f
+                ? Mathf.Abs(clampedX) / maximumHalfWidth
+                : 0f;
+            float curvedDepth = baseDepth
+                - (depthSpacing
+                    * 0.32f
+                    * normalizedLateral
+                    * normalizedLateral);
+            results.Add(new FormationSlot(
+                slotIndex,
+                new Vector3(clampedX, 0f, curvedDepth)));
+            slotIndex++;
         }
 
         private static void CalculateRows(
@@ -273,25 +403,5 @@ namespace ProjectGatefront.Gameplay.Squad
             return Mathf.Min(columnSpacing, availableSpacing);
         }
 
-        private static float CalculateCenterFirstX(
-            int order,
-            int rowCapacity,
-            float spacing)
-        {
-            if (rowCapacity % 2 == 1)
-            {
-                if (order == 0)
-                {
-                    return 0f;
-                }
-
-                int step = (order + 1) / 2;
-                return (order % 2 == 1 ? -step : step) * spacing;
-            }
-
-            int evenStep = order / 2;
-            float magnitude = (evenStep + 0.5f) * spacing;
-            return order % 2 == 0 ? -magnitude : magnitude;
-        }
     }
 }

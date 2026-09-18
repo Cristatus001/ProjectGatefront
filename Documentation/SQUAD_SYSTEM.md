@@ -37,9 +37,11 @@ systems without exposing the mutable internal list.
 
 ## Formations
 
-- Compact is the default combat formation. It fills deterministic center-first rows
-  using dense spacing, grows outward gradually, and remains readable at 5, 10, 20,
-  and 50 total combatants.
+- Compact is the default visual combat formation. Its deterministic rounded crowd
+  layout fills beside the leader first, then near diagonals, additional flank
+  support, and shallow curved rear bands. The leader reads at the front edge of a
+  broad army cluster rather than at the head of a deep marching block. Dedicated
+  lateral and depth spacing keep 5, 10, 20, and 50 combatants readable.
 - Line uses compact centered rows with a configurable row capacity.
 - Wedge begins with a narrow apex, then adds left/right pairs farther back.
 - Column uses one or two narrow columns and extends backward.
@@ -78,8 +80,10 @@ disabled and pushed into the local pool, then reused before any new instance is
 created. Repeated add/remove operations within the previous peak size do not
 instantiate or destroy follower objects.
 
-PF_SquadUnit contains shared primitive meshes with no colliders or rigidbodies. All
-standard followers share MAT_PrototypeSquadUnit.
+PF_SquadUnit uses a slightly reduced version of the leader's capsule body, head
+marker, and forward weapon/orientation marker. Followers remain green so the larger
+blue leader stands out. The shared primitive meshes have no colliders or rigidbodies,
+and all standard followers share MAT_PrototypeSquadUnit.
 
 ## Development controls
 

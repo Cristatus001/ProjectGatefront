@@ -9,6 +9,8 @@
 - Added Compact squad formation
 - Reworked camera for fixed combat framing
 - Preserved tactical formations and boundary containment
+- Redesigned Compact formation to a broader rounded crowd layout
+- Updated squad follower visuals to better match the leader
 
 ## 0.3.0-dev
 

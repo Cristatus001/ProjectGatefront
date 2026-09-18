@@ -18,8 +18,10 @@ MonoBehaviour:
   rowSpacing: 1.35
   columnSpacing: 1.1
   spreadSpacingMultiplier: 1.6
+  compactLateralSpacing: 1.15
+  compactDepthSpacing: 0.72
   maxUnitsPerRow: 5
   formationTransitionSpeed: 12
   unitRotationSpeed: 720
   maximumFormationHalfWidth: 3.7
-  unitBoundaryRadius: 0.21
+  unitBoundaryRadius: 0.34

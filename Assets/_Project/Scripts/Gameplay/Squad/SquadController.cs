@@ -265,6 +265,8 @@ namespace ProjectGatefront.Gameplay.Squad
                 config.RowSpacing,
                 config.ColumnSpacing,
                 config.SpreadSpacingMultiplier,
+                config.CompactLateralSpacing,
+                config.CompactDepthSpacing,
                 config.MaxUnitsPerRow,
                 maximumFormationHalfWidth,
                 formationSlots);
@@ -421,6 +423,8 @@ namespace ProjectGatefront.Gameplay.Squad
                     config.RowSpacing,
                     config.ColumnSpacing,
                     config.SpreadSpacingMultiplier,
+                    config.CompactLateralSpacing,
+                    config.CompactDepthSpacing,
                     config.MaxUnitsPerRow,
                     config.MaximumFormationHalfWidth,
                     formationSlots);

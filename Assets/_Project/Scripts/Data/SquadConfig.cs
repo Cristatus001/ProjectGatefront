@@ -20,6 +20,12 @@ namespace ProjectGatefront.Data
         [Tooltip("Spacing multiplier used by the Spread formation.")]
         [SerializeField, Min(1f)] private float spreadSpacingMultiplier = 1.6f;
 
+        [Tooltip("Horizontal spacing used by the rounded Compact crowd layout.")]
+        [SerializeField, Min(0.1f)] private float compactLateralSpacing = 1.15f;
+
+        [Tooltip("Depth between shallow curved bands in the Compact crowd layout.")]
+        [SerializeField, Min(0.1f)] private float compactDepthSpacing = 0.72f;
+
         [Tooltip("Maximum number of followers placed in one Line or Spread row.")]
         [SerializeField, Min(1)] private int maxUnitsPerRow = 5;
 
@@ -33,7 +39,7 @@ namespace ProjectGatefront.Data
         [SerializeField, Min(0.1f)] private float maximumFormationHalfWidth = 3.7f;
 
         [Tooltip("Approximate follower half-width used to keep visible bodies inside the track.")]
-        [SerializeField, Min(0f)] private float unitBoundaryRadius = 0.21f;
+        [SerializeField, Min(0f)] private float unitBoundaryRadius = 0.34f;
 
         public int StartingUnitCount => startingUnitCount;
 
@@ -44,6 +50,10 @@ namespace ProjectGatefront.Data
         public float ColumnSpacing => columnSpacing;
 
         public float SpreadSpacingMultiplier => spreadSpacingMultiplier;
+
+        public float CompactLateralSpacing => compactLateralSpacing;
+
+        public float CompactDepthSpacing => compactDepthSpacing;
 
         public int MaxUnitsPerRow => maxUnitsPerRow;
 
