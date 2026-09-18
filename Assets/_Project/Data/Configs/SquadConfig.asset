@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SquadConfig
   m_EditorClassIdentifier: ProjectGatefront.Data::ProjectGatefront.Data.SquadConfig
   designerNotes: 
-  startingUnitCount: 5
+  startingUnitCount: 20
   maxSquadSize: 50
   rowSpacing: 1.35
   columnSpacing: 1.1
