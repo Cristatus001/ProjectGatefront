@@ -20,6 +20,7 @@ namespace ProjectGatefront.Gameplay.Weapons
         [SerializeField] private List<CombatTargetDummy> testTargets =
             new List<CombatTargetDummy>();
         [SerializeField, Range(0.05f, 0.5f)] private float targetRefreshInterval = 0.1f;
+        [SerializeField, Range(1, 50)] private int maximumDistributedTargets = 32;
 
         [Header("Development")]
         [SerializeField] private bool debugOverlayEnabled = true;
@@ -27,6 +28,8 @@ namespace ProjectGatefront.Gameplay.Weapons
         private readonly List<SquadUnit> activeUnits = new List<SquadUnit>(50);
         private readonly List<WeaponController> activeWeapons =
             new List<WeaponController>(50);
+        private readonly List<ITargetable> targetCandidates =
+            new List<ITargetable>(32);
         private WeaponRuntimeStats runtimeStats;
         private ITargetable currentTarget;
         private float targetRefreshRemaining;
@@ -66,6 +69,8 @@ namespace ProjectGatefront.Gameplay.Weapons
 
         public ITargetable CurrentTarget => currentTarget;
 
+        public int AssignedTargetCount => targetCandidates.Count;
+
         public ProjectilePool ProjectilePool => projectilePool;
 
         public TargetRegistry TargetRegistry => targetRegistry;
@@ -84,15 +89,14 @@ namespace ProjectGatefront.Gameplay.Weapons
             }
 
             targetRefreshRemaining = targetRefreshInterval;
-            ITargetable selectedTarget = targetRegistry.FindClosestForwardTarget(
+            targetRegistry.CollectClosestForwardTargets(
                 squadController.transform.position,
                 squadController.transform.forward,
                 runtimeStats.Range,
-                runtimeStats.TargetingCosine);
-            if (!ReferenceEquals(selectedTarget, currentTarget))
-            {
-                SetCurrentTarget(selectedTarget);
-            }
+                runtimeStats.TargetingCosine,
+                maximumDistributedTargets,
+                targetCandidates);
+            AssignTargets();
         }
 
         public void Configure(
@@ -185,7 +189,8 @@ namespace ProjectGatefront.Gameplay.Weapons
             projectilePool.SetSimulationEnabled(enabled);
             if (!enabled)
             {
-                SetCurrentTarget(null);
+                targetCandidates.Clear();
+                AssignTargets();
             }
 
             for (int index = 0; index < activeWeapons.Count; index++)
@@ -211,7 +216,8 @@ namespace ProjectGatefront.Gameplay.Weapons
                 }
             }
 
-            SetCurrentTarget(null);
+            targetCandidates.Clear();
+            AssignTargets();
             for (int index = 0; index < activeWeapons.Count; index++)
             {
                 activeWeapons[index].ResetCooldown(
@@ -250,6 +256,25 @@ namespace ProjectGatefront.Gameplay.Weapons
             }
         }
 
+        public void CopyTargetCandidatesTo(List<ITargetable> destination)
+        {
+            if (destination == null)
+            {
+                throw new ArgumentNullException(nameof(destination));
+            }
+
+            destination.Clear();
+            for (int index = 0; index < targetCandidates.Count; index++)
+            {
+                destination.Add(targetCandidates[index]);
+            }
+        }
+
+        public void ClearProjectiles()
+        {
+            projectilePool.ResetPool();
+        }
+
         private void HandleSquadCountChanged(int _)
         {
             RefreshShooters();
@@ -278,17 +303,23 @@ namespace ProjectGatefront.Gameplay.Weapons
                     index + 1,
                     CalculateCooldownPhase(index));
                 weapon.SetFiringEnabled(combatEnabled);
-                weapon.SetTarget(currentTarget);
+                weapon.SetTarget(targetCandidates.Count > 0
+                    ? targetCandidates[index % targetCandidates.Count]
+                    : null);
                 activeWeapons.Add(weapon);
             }
         }
 
-        private void SetCurrentTarget(ITargetable selectedTarget)
+        private void AssignTargets()
         {
-            currentTarget = selectedTarget;
+            currentTarget = targetCandidates.Count > 0
+                ? targetCandidates[0]
+                : null;
             for (int index = 0; index < activeWeapons.Count; index++)
             {
-                activeWeapons[index].SetTarget(selectedTarget);
+                activeWeapons[index].SetTarget(targetCandidates.Count > 0
+                    ? targetCandidates[index % targetCandidates.Count]
+                    : null);
             }
         }
 

@@ -48,9 +48,11 @@ feedback without material instances or per-shot object creation.
 
 `TargetRegistry` is the authoritative collection of `ITargetable` objects. Targets
 register and unregister explicitly. `SquadWeaponSystem` scans that compact list ten
-times per second, without sorting, and shares the closest valid forward target with
-all shooters. Objects behind the squad, outside weapon range, outside the targeting
-cone, or no longer targetable are rejected.
+times per second. It maintains an ordered cache of up to 32 nearest valid forward
+candidates and distributes shooters round-robin across that cache. This reduces
+horde overkill without per-soldier scene searches or sorts. Objects behind the
+squad, outside weapon range, outside the targeting cone, or no longer targetable are
+rejected.
 
 Projectiles apply damage only through `IDamageable`, returning a `DamageResult`.
 Combat code therefore has no dependency on a future enemy class and can later work
@@ -68,7 +70,12 @@ fast-projectile tunneling. It returns to the pool on impact or expiry.
 No projectile uses a Rigidbody, per-frame `GetComponent`, scene search, or routine
 `Instantiate`/`Destroy` cycle.
 
-## Prototype targets and moving world
+## Enemy registry behavior and prototype targets
+
+Phase 5 Rusher enemies register while alive and approaching. Death, contact,
+lateral passage, reset, and pooling immediately remove them from TargetRegistry, so
+dead or missed enemies cannot keep receiving assignments. The distribution cache is
+rebuilt on the next modest target refresh.
 
 `CombatTargetDummy` is test content, not enemy AI. It owns configurable health and
 target radius, implements both combat interfaces, registers with `TargetRegistry`,
@@ -76,8 +83,8 @@ and participates in `WorldScroller` through `ScrollItem`. At zero health it beco
 non-targetable immediately, unregisters, and deactivates. A target that passes the
 squad also unregisters and deactivates without damaging the player.
 
-The Phase 4 scene includes weak, medium, and strong primitive targets to make damage,
-death, and retargeting readable.
+The class remains available for isolated tests, but Phase 5 normal gameplay no
+longer contains target-dummy scene objects.
 
 ## Pause and reset
 

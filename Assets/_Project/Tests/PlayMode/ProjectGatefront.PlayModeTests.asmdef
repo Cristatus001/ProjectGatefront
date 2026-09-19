@@ -2,7 +2,8 @@
   "name": "ProjectGatefront.PlayModeTests",
   "rootNamespace": "ProjectGatefront.Tests.PlayMode",
   "references": [
-    "ProjectGatefront.Gameplay"
+    "ProjectGatefront.Gameplay",
+    "ProjectGatefront.Data"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

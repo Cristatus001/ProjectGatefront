@@ -67,6 +67,77 @@ namespace ProjectGatefront.Gameplay.Combat
             return closestTarget;
         }
 
+        public int CollectClosestForwardTargets(
+            Vector3 origin,
+            Vector3 forward,
+            float range,
+            float minimumForwardCosine,
+            int maximumCount,
+            List<ITargetable> results)
+        {
+            if (results == null)
+            {
+                throw new ArgumentNullException(nameof(results));
+            }
+
+            results.Clear();
+            int safeMaximumCount = Mathf.Max(0, maximumCount);
+            if (safeMaximumCount == 0)
+            {
+                return 0;
+            }
+
+            for (int targetIndex = targets.Count - 1;
+                targetIndex >= 0;
+                targetIndex--)
+            {
+                ITargetable candidate = targets[targetIndex];
+                if (candidate == null)
+                {
+                    targets.RemoveAt(targetIndex);
+                    continue;
+                }
+
+                if (!candidate.IsTargetable
+                    || !TargetingMath.IsValidForwardTarget(
+                        origin,
+                        forward,
+                        candidate.AimPosition,
+                        range,
+                        minimumForwardCosine))
+                {
+                    continue;
+                }
+
+                float candidateDistanceSquared = Vector3.SqrMagnitude(
+                    candidate.AimPosition - origin);
+                int insertionIndex = results.Count;
+                for (int resultIndex = 0;
+                    resultIndex < results.Count;
+                    resultIndex++)
+                {
+                    float existingDistanceSquared = Vector3.SqrMagnitude(
+                        results[resultIndex].AimPosition - origin);
+                    if (candidateDistanceSquared < existingDistanceSquared)
+                    {
+                        insertionIndex = resultIndex;
+                        break;
+                    }
+                }
+
+                if (insertionIndex < safeMaximumCount)
+                {
+                    results.Insert(insertionIndex, candidate);
+                    if (results.Count > safeMaximumCount)
+                    {
+                        results.RemoveAt(results.Count - 1);
+                    }
+                }
+            }
+
+            return results.Count;
+        }
+
         public bool TryFindFirstSegmentHit(
             Vector3 segmentStart,
             Vector3 segmentEnd,

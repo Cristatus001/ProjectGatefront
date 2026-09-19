@@ -30,10 +30,15 @@ namespace ProjectGatefront.Gameplay.Squad
         private PlayerController controlRoot;
         private float idealLocalMinX;
         private float idealLocalMaxX;
+        private float idealLocalMaxZ;
 
         public event Action<int> SquadCountChanged;
 
         public event Action<FormationType> FormationChanged;
+
+        public event Action<int> CasualtiesApplied;
+
+        public event Action SquadDefeated;
 
         public bool IsInitialized { get; private set; }
 
@@ -47,6 +52,8 @@ namespace ProjectGatefront.Gameplay.Squad
 
         public int FormationRevision { get; private set; }
 
+        public bool IsDefeated { get; private set; }
+
         public float MinimumRootX { get; private set; }
 
         public float MaximumRootX { get; private set; }
@@ -58,6 +65,18 @@ namespace ProjectGatefront.Gameplay.Squad
                     playerConfig.TrackHalfWidth,
                     config.UnitBoundaryRadius,
                     playerConfig.TrackBoundaryPadding);
+
+        public float CurrentWorldMinimumX => transform.position.x
+            + idealLocalMinX
+            - (config == null ? 0f : config.UnitBoundaryRadius);
+
+        public float CurrentWorldMaximumX => transform.position.x
+            + idealLocalMaxX
+            + (config == null ? 0f : config.UnitBoundaryRadius);
+
+        public float CombatContactZ => transform.position.z
+            + idealLocalMaxZ
+            + (config == null ? 0f : config.UnitBoundaryRadius);
 
         public int ConfiguredStartingUnitCount => config == null
             ? 0
@@ -159,7 +178,7 @@ namespace ProjectGatefront.Gameplay.Squad
 
         public int AddUnits(int count)
         {
-            if (!IsInitialized || count <= 0)
+            if (!IsInitialized || IsDefeated || count <= 0)
             {
                 return 0;
             }
@@ -209,18 +228,63 @@ namespace ProjectGatefront.Gameplay.Squad
                 return 0;
             }
 
-            for (int index = 0; index < removeCount; index++)
-            {
-                int lastIndex = activeUnits.Count - 1;
-                SquadUnit unit = activeUnits[lastIndex];
-                activeUnits.RemoveAt(lastIndex);
-                unit.Deactivate();
-                pooledUnits.Push(unit);
-            }
+            DeactivateLastUnits(removeCount);
 
             RebuildFormation();
             SquadCountChanged?.Invoke(CurrentUnitCount);
             return removeCount;
+        }
+
+        public int ApplyCasualties(int count)
+        {
+            if (!IsInitialized || IsDefeated || count <= 0)
+            {
+                return 0;
+            }
+
+            int casualtyCount = Mathf.Min(count, activeUnits.Count);
+            if (casualtyCount <= 0)
+            {
+                return 0;
+            }
+
+            DeactivateLastUnits(casualtyCount);
+            RebuildFormation();
+            SquadCountChanged?.Invoke(CurrentUnitCount);
+            CasualtiesApplied?.Invoke(casualtyCount);
+
+            if (activeUnits.Count == 0 && !IsDefeated)
+            {
+                IsDefeated = true;
+                SquadDefeated?.Invoke();
+            }
+
+            return casualtyCount;
+        }
+
+        public void ResetSquad()
+        {
+            if (!IsInitialized)
+            {
+                return;
+            }
+
+            DeactivateLastUnits(activeUnits.Count);
+            IsDefeated = false;
+            int resetCount = ConfiguredStartingUnitCount;
+            for (int index = 0; index < resetCount; index++)
+            {
+                SquadUnit unit = AcquireUnit();
+                unit.Activate(
+                    formationRoot,
+                    Vector3.zero,
+                    config.FormationTransitionSpeed,
+                    config.UnitRotationSpeed);
+                activeUnits.Add(unit);
+            }
+
+            RebuildFormation();
+            SquadCountChanged?.Invoke(CurrentUnitCount);
         }
 
         public bool SetFormation(FormationType formationType)
@@ -280,6 +344,18 @@ namespace ProjectGatefront.Gameplay.Squad
             return unit;
         }
 
+        private void DeactivateLastUnits(int count)
+        {
+            for (int index = 0; index < count; index++)
+            {
+                int lastIndex = activeUnits.Count - 1;
+                SquadUnit unit = activeUnits[lastIndex];
+                activeUnits.RemoveAt(lastIndex);
+                unit.Deactivate();
+                pooledUnits.Push(unit);
+            }
+        }
+
         private void RebuildFormation()
         {
             float maximumFormationHalfWidth = Mathf.Min(
@@ -327,17 +403,22 @@ namespace ProjectGatefront.Gameplay.Squad
             {
                 idealLocalMinX = 0f;
                 idealLocalMaxX = 0f;
+                idealLocalMaxZ = 0f;
                 return;
             }
 
             idealLocalMinX = formationSlots[0].LocalPosition.x;
             idealLocalMaxX = idealLocalMinX;
+            idealLocalMaxZ = formationSlots[0].LocalPosition.z;
 
             for (int index = 1; index < formationSlots.Count; index++)
             {
                 float localX = formationSlots[index].LocalPosition.x;
                 idealLocalMinX = Mathf.Min(idealLocalMinX, localX);
                 idealLocalMaxX = Mathf.Max(idealLocalMaxX, localX);
+                idealLocalMaxZ = Mathf.Max(
+                    idealLocalMaxZ,
+                    formationSlots[index].LocalPosition.z);
             }
         }
 
@@ -422,7 +503,9 @@ namespace ProjectGatefront.Gameplay.Squad
             GUI.Box(
                 new Rect(12f, 12f, 310f, 78f),
                 $"Squad: {CurrentUnitCount}\nFormation: {CurrentFormation}"
-                + "\n1 Compact  2 Line  3 Wedge  4 Column  5 Spread");
+                + (IsDefeated
+                    ? "\nDEFEATED"
+                    : "\n1 Compact  2 Line  3 Wedge  4 Column  5 Spread"));
         }
 #endif
 

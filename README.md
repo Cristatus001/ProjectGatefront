@@ -2,16 +2,18 @@
 
 Project Gatefront is an original, commercial-quality 3D action-runner in which the player commands and develops a tactical squad through compact battlefield missions. The project is designed first for browser delivery while keeping runtime systems independent from any single portal SDK.
 
-Current development stage: **PHASE 4 — Automatic Shooting Prototype**
+Current development stage: **PHASE 5 — Enemy Horde Combat Prototype**
 
 The current prototype uses a fixed squad combat zone with resolution-independent
 horizontal drag, a mostly fixed portrait camera, a moving battlefield, recycled
 track chunks, virtual level distance, pooled squad spawning, Compact plus four
-tactical formations, and automatic squad shooting. Every visible soldier uses the
-shared Prototype Rifle, acquires targets automatically, and launches visible pooled
-projectiles at damageable test targets. The runtime weapon-stat and tier foundation
-is ready for later progression work. Advertising, analytics, portal SDK integration,
-gates, real enemy AI, and upgrade economy are not included.
+tactical formations, automatic squad shooting, and authored waves of pooled Rusher
+enemies. Surviving enemies can remove visible soldiers at the formation contact
+line; lateral movement can dodge enemies, and losing every soldier stops combat in
+a lightweight defeat state. Fire is distributed across nearby horde targets rather
+than concentrated on one weak enemy. Advertising, analytics, portal SDK integration,
+gates, rewards, final enemy AI archetypes, results UI, and upgrade economy are not
+included.
 
 ## Engine
 
@@ -49,8 +51,8 @@ Third-party packages must remain outside Assets/_Project.
 - Assets/_Project/Scenes/02_Gameplay.unity
 
 The boot scene initializes persistent game-level services. The main menu remains
-an empty foundation; the gameplay scene contains the Phase 4 automatic-shooting
-prototype built on the moving-world presentation.
+an empty foundation; the gameplay scene contains the Phase 5 enemy-horde combat
+prototype built on the fixed-squad moving-world presentation.
 
 ## Moving-world gameplay prototype
 
@@ -89,6 +91,21 @@ The Phase 4 prototype can be safely created or repaired with
 data lives in `PrototypeRifle.asset`; resolved runtime stats remain separate so
 future permanent and run-specific upgrades never mutate the configuration asset.
 
+## Enemy horde combat prototype
+
+The normal gameplay scene uses distance-authored Row, Grid, and Cluster waves rather
+than Phase 4 target dummies. Weak and medium Rusher configs share one pooled enemy
+implementation. Each enemy approaches at the current world speed plus its own
+configured speed, registers with the combat target registry while alive, and returns
+to its pool after death, squad contact, or a safe lateral pass.
+
+Contact uses the squad's current read-only horizontal formation bounds. An aligned
+enemy applies configured casualties once and immediately despawns; an enemy outside
+those bounds can pass behind without damage. Combat casualties may reduce the squad
+to zero, which pauses the world, enemies, weapons, and projectiles without adding a
+final results screen. The Phase 5 setup can be repaired safely with
+**Tools > Project Gatefront > Setup Phase 5 Enemy Combat Prototype**.
+
 ## Branch strategy
 
 - main — stable/release-ready work
@@ -109,3 +126,4 @@ Player movement details are recorded in [Documentation/PLAYER_MOVEMENT.md](Docum
 Squad architecture is recorded in [Documentation/SQUAD_SYSTEM.md](Documentation/SQUAD_SYSTEM.md).
 Moving-world architecture is recorded in [Documentation/MOVING_WORLD_ARCHITECTURE.md](Documentation/MOVING_WORLD_ARCHITECTURE.md).
 Weapon and combat architecture is recorded in [Documentation/WEAPON_SYSTEM.md](Documentation/WEAPON_SYSTEM.md).
+Enemy horde architecture is recorded in [Documentation/ENEMY_COMBAT_SYSTEM.md](Documentation/ENEMY_COMBAT_SYSTEM.md).

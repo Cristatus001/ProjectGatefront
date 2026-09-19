@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e20f92424b5a9da47a01cef8f6b82959, type: 3}
+  m_Name: PrototypeCombatLevel
+  m_EditorClassIdentifier: ProjectGatefront.Data::ProjectGatefront.Data.LevelConfig
+  designerNotes: 
+  missionNumber: 1
+  sceneName: 02_Gameplay
+  finalBoss: {fileID: 0}
+  enemyWaves:
+  - spawnDistance: 8
+    enemyConfig: {fileID: 11400000, guid: f2d927ec5577db34ea63222a4b1caa02, type: 2}
+    count: 5
+    spawnPattern: 0
+    rowCount: 1
+    columnSpacing: 1.15
+    rowSpacing: 1.1
+    laneCenterX: 0
+    spawnDepth: 34
+  - spawnDistance: 60
+    enemyConfig: {fileID: 11400000, guid: f2d927ec5577db34ea63222a4b1caa02, type: 2}
+    count: 10
+    spawnPattern: 1
+    rowCount: 2
+    columnSpacing: 1.15
+    rowSpacing: 1.1
+    laneCenterX: 0
+    spawnDepth: 34
+  - spawnDistance: 120
+    enemyConfig: {fileID: 11400000, guid: f2d927ec5577db34ea63222a4b1caa02, type: 2}
+    count: 15
+    spawnPattern: 2
+    rowCount: 3
+    columnSpacing: 1.1
+    rowSpacing: 1.05
+    laneCenterX: 0
+    spawnDepth: 34
+  - spawnDistance: 185
+    enemyConfig: {fileID: 11400000, guid: 25c729204dc4b534d97800f28fa9c3d2, type: 2}
+    count: 10
+    spawnPattern: 1
+    rowCount: 2
+    columnSpacing: 1.25
+    rowSpacing: 1.15
+    laneCenterX: 0
+    spawnDepth: 35
+  - spawnDistance: 255
+    enemyConfig: {fileID: 11400000, guid: f2d927ec5577db34ea63222a4b1caa02, type: 2}
+    count: 25
+    spawnPattern: 1
+    rowCount: 5
+    columnSpacing: 1.05
+    rowSpacing: 1
+    laneCenterX: 0
+    spawnDepth: 34
+  - spawnDistance: 330
+    enemyConfig: {fileID: 11400000, guid: 25c729204dc4b534d97800f28fa9c3d2, type: 2}
+    count: 40
+    spawnPattern: 2
+    rowCount: 5
+    columnSpacing: 0.95
+    rowSpacing: 0.95
+    laneCenterX: 0
+    spawnDepth: 36
+  activeEnemyLimit: 100

@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using System.Collections.Generic;
 using ProjectGatefront.Gameplay.Combat;
 using UnityEngine;
 
@@ -94,6 +95,30 @@ namespace ProjectGatefront.Tests
 
             Assert.That(hit, Is.True);
             Assert.That(target, Is.SameAs(near));
+        }
+
+        [Test]
+        public void CandidateCollection_ReturnsNearestTargetsInOrder()
+        {
+            RegistryTestTarget far = CreateTarget("Far", new Vector3(0f, 0f, 9f));
+            RegistryTestTarget near = CreateTarget("Near", new Vector3(0f, 0f, 3f));
+            RegistryTestTarget middle = CreateTarget("Middle", new Vector3(0f, 0f, 6f));
+            registry.Register(far);
+            registry.Register(near);
+            registry.Register(middle);
+            var results = new List<ITargetable>();
+
+            int count = registry.CollectClosestForwardTargets(
+                Vector3.zero,
+                Vector3.forward,
+                10f,
+                0f,
+                2,
+                results);
+
+            Assert.That(count, Is.EqualTo(2));
+            Assert.That(results[0], Is.SameAs(near));
+            Assert.That(results[1], Is.SameAs(middle));
         }
 
         private static RegistryTestTarget CreateTarget(

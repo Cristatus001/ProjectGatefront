@@ -1,5 +1,6 @@
 using ProjectGatefront.Core;
 using ProjectGatefront.Data;
+using ProjectGatefront.Gameplay.Enemies;
 using ProjectGatefront.Gameplay.Player;
 using ProjectGatefront.Gameplay.Squad;
 using ProjectGatefront.Gameplay.Weapons;
@@ -20,9 +21,12 @@ namespace ProjectGatefront.Gameplay
         [SerializeField] private GameBalanceConfig gameBalanceConfig;
         [SerializeField] private WorldScroller worldScroller;
         [SerializeField] private SquadWeaponSystem squadWeaponSystem;
+        [SerializeField] private EnemyWaveDirector enemyWaveDirector;
         [SerializeField] private bool movementEnabledOnStart = true;
 
         public bool IsInitialized { get; private set; }
+
+        public bool IsDefeated { get; private set; }
 
         private void Awake()
         {
@@ -62,6 +66,11 @@ namespace ProjectGatefront.Gameplay
             squadWeaponSystem = weaponSystem;
         }
 
+        public void ConfigureEnemyCombat(EnemyWaveDirector waveDirector)
+        {
+            enemyWaveDirector = waveDirector;
+        }
+
         public void Initialize()
         {
             if (IsInitialized)
@@ -77,7 +86,8 @@ namespace ProjectGatefront.Gameplay
                 || squadController == null
                 || gameBalanceConfig == null
                 || worldScroller == null
-                || squadWeaponSystem == null)
+                || squadWeaponSystem == null
+                || enemyWaveDirector == null)
             {
                 GameLog.Error(
                     "GameplayBootstrap is missing required scene references.",
@@ -89,21 +99,67 @@ namespace ProjectGatefront.Gameplay
             playerController.Initialize(playerConfig, new PointerDragInputSource());
             runnerCamera.Initialize(cameraTarget);
             squadController.Initialize(playerConfig, playerController);
+            squadController.SquadDefeated += HandleSquadDefeated;
             worldScroller.Initialize();
             squadWeaponSystem.Initialize();
-            playerController.SetMovementEnabled(movementEnabledOnStart);
-            runnerCamera.SetFollowEnabled(movementEnabledOnStart);
-            worldScroller.SetScrollingEnabled(movementEnabledOnStart);
-            squadWeaponSystem.SetCombatEnabled(movementEnabledOnStart);
+            enemyWaveDirector.Initialize();
+            SetGameplaySystemsEnabled(movementEnabledOnStart);
             IsInitialized = true;
         }
 
         public void SetMovementEnabled(bool enabled)
         {
+            if (enabled && IsDefeated)
+            {
+                return;
+            }
+
+            SetGameplaySystemsEnabled(enabled);
+        }
+
+        public void ResetPrototypeRun()
+        {
+            if (!IsInitialized)
+            {
+                return;
+            }
+
+            SetGameplaySystemsEnabled(false);
+            enemyWaveDirector.ResetCombat();
+            squadController.ResetSquad();
+            worldScroller.ResetScroll();
+            squadWeaponSystem.ResetCombat();
+            IsDefeated = false;
+            SetGameplaySystemsEnabled(true);
+        }
+
+        private void SetGameplaySystemsEnabled(bool enabled)
+        {
             playerController.SetMovementEnabled(enabled);
             runnerCamera.SetFollowEnabled(enabled);
             worldScroller.SetScrollingEnabled(enabled);
             squadWeaponSystem.SetCombatEnabled(enabled);
+            enemyWaveDirector.SetSimulationEnabled(enabled);
+        }
+
+        private void HandleSquadDefeated()
+        {
+            if (IsDefeated)
+            {
+                return;
+            }
+
+            IsDefeated = true;
+            SetGameplaySystemsEnabled(false);
+            squadWeaponSystem.ClearProjectiles();
+        }
+
+        private void OnDestroy()
+        {
+            if (squadController != null)
+            {
+                squadController.SquadDefeated -= HandleSquadDefeated;
+            }
         }
     }
 }

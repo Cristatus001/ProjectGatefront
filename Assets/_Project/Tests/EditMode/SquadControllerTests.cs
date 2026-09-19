@@ -86,6 +86,41 @@ namespace ProjectGatefront.Tests.EditMode
         }
 
         [Test]
+        public void ApplyCasualties_CanReachZeroAndFiresDefeatOncePerReset()
+        {
+            int defeatedCount = 0;
+            controller.SquadDefeated += () => defeatedCount++;
+
+            controller.AddUnits(15);
+            AssertVisibleCount(20);
+            Assert.That(controller.ApplyCasualties(1), Is.EqualTo(1));
+            AssertVisibleCount(19);
+            Assert.That(controller.ApplyCasualties(0), Is.Zero);
+            Assert.That(controller.ApplyCasualties(-1), Is.Zero);
+
+            controller.ResetSquad();
+            AssertVisibleCount(5);
+            Assert.That(controller.ApplyCasualties(3), Is.EqualTo(3));
+            AssertVisibleCount(2);
+
+            controller.ResetSquad();
+            controller.RemoveUnits(4);
+            AssertVisibleCount(1);
+            Assert.That(controller.ApplyCasualties(1), Is.EqualTo(1));
+            AssertVisibleCount(0);
+            Assert.That(controller.IsDefeated, Is.True);
+            Assert.That(defeatedCount, Is.EqualTo(1));
+            Assert.That(controller.ApplyCasualties(100), Is.Zero);
+            Assert.That(defeatedCount, Is.EqualTo(1));
+
+            controller.ResetSquad();
+            Assert.That(controller.IsDefeated, Is.False);
+            AssertVisibleCount(5);
+            Assert.That(controller.ApplyCasualties(100), Is.EqualTo(5));
+            Assert.That(defeatedCount, Is.EqualTo(2));
+        }
+
+        [Test]
         public void AddUnits_ClampsAtConfiguredMaximum()
         {
             controller.AddUnits(100);

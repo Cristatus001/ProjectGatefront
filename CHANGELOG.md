@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0-dev
+
+- Added approaching Rusher enemies.
+- Added pooled enemy system.
+- Added authored enemy waves.
+- Added squad casualties.
+- Added squad defeat state.
+- Added lateral dodge/contact logic.
+- Added horde targeting distribution.
+- Added enemy combat tests.
+
 ## 0.4.0-dev
 
 - Added automatic squad shooting.

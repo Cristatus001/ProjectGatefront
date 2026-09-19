@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 943e8064ba467f0419e3d626ac796bce, type: 3}
+  m_Name: Enemy_Rusher_Medium
+  m_EditorClassIdentifier: ProjectGatefront.Data::ProjectGatefront.Data.EnemyConfig
+  designerNotes: 
+  enemyId: rusher_medium
+  displayName: Medium Rusher
+  maximumHealth: 180
+  approachSpeed: 1.25
+  casualtiesOnContact: 2
+  targetRadius: 0.62
+  rewardValue: 0
+  visualScale: 1.12

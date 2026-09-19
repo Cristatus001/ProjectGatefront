@@ -20,11 +20,12 @@ chase a rendered leader.
 
 CurrentUnitCount is exactly the number of active visible soldiers. There is no
 hidden or always-counted commander. A count of 1 means one pooled PF_SquadUnit is
-visible, a count of 20 means twenty are visible, and the minimum count remains 1.
+visible, a count of 20 means twenty are visible, and combat casualties can reduce
+the count to 0.
 
 Every visible member uses the same prefab, scale, body proportions, material family,
 facing, WeaponMount, and FirePoint hierarchy. WeaponMount and FirePoint are transform
-anchors only; Phase 3.6 does not implement shooting.
+anchors used by the automatic weapon system.
 
 ## Responsibilities
 
@@ -39,6 +40,24 @@ anchors only; Phase 3.6 does not implement shooting.
 SquadCountChanged and FormationChanged are typed integration points without a UI
 dependency. CopyActiveUnitsTo provides controlled access to all visible soldiers
 without exposing the mutable internal list.
+
+## Combat casualties and defeat
+
+`RemoveUnits` remains the non-lethal squad-modification API and intentionally
+preserves a minimum of one soldier for future gates and choices. `ApplyCasualties`
+is the explicit lethal combat API: it deterministically removes the highest active
+slot indices, may reach zero, rebuilds the formation, and reports the actual number
+removed through `CasualtiesApplied`.
+
+At zero soldiers, `IsDefeated` becomes true and `SquadDefeated` fires exactly once
+until `ResetSquad` begins a new run. GameplayBootstrap responds by stopping player
+movement, world scrolling, enemy simulation, weapon firing, and active projectiles.
+No results UI is part of Phase 5. Future specialist logic may replace the current
+highest-slot casualty policy without changing the public casualty contract.
+
+CurrentWorldMinimumX, CurrentWorldMaximumX, and CombatContactZ expose read-only
+formation bounds for cheap deterministic enemy contact checks. Internal slot lists
+remain private.
 
 ## Formations
 

@@ -31,12 +31,22 @@ The baseline squad combat interaction is automatic shooting. Every visible soldi
 contributes firepower from the shared equipped weapon; the player remains responsible
 for horizontal positioning and later tactical choices rather than pressing a fire
 button. Phase 4 uses simple damageable test targets, not real enemy AI.
+Phase 5 replaces normal-scene test targets with pooled straight-line Rusher hordes;
+advanced enemy decision-making remains future work.
 
 Permanent weapon progression will happen between attempts and may improve damage,
 fire rate, projectile count, penetration, or weapon presentation. Future gates and
 pickups may grant run-specific changes. Both forms of progression will resolve into
 runtime weapon stats without modifying base weapon configuration assets. Economy,
 upgrade menus, gates, and pickups remain future work.
+
+Enemy hordes now advance toward the fixed squad while every visible soldier fires
+automatically. Enemies that survive to the formation's contact line remove soldiers;
+horizontal positioning can dodge enemies that pass outside the squad footprint.
+Repeated casualties can wipe the visible squad and end the combat attempt. This
+pressure is the foundation for future permanent weapon upgrades that let later
+attempts progress deeper, while future gates and pickups provide temporary tactical
+changes during a run.
 
 The intended future progression loop is:
 
