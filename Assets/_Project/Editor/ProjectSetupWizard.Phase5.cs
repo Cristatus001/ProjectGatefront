@@ -16,10 +16,8 @@ namespace ProjectGatefront.Editor
 {
     public static partial class ProjectSetupWizard
     {
-        private const string WeakRusherConfigPath =
-            "Assets/_Project/Data/Configs/Enemy_Rusher_Weak.asset";
-        private const string MediumRusherConfigPath =
-            "Assets/_Project/Data/Configs/Enemy_Rusher_Medium.asset";
+        private const string NormalRusherConfigPath =
+            "Assets/_Project/Data/Configs/Enemy_Rusher_Normal.asset";
         private const string PrototypeCombatLevelPath =
             "Assets/_Project/Data/Levels/PrototypeCombatLevel.asset";
         private const string EnemyRusherPrefabPath =
@@ -39,39 +37,29 @@ namespace ProjectGatefront.Editor
             EnsureFolder(PrototypeMaterialsFolder);
 
             Material weakMaterial = EnsurePrototypeMaterial(
-                "MAT_PrototypeEnemyWeak",
+                "MAT_PrototypeEnemyBody",
                 new Color(0.58f, 0.08f, 0.08f));
-            Material mediumMaterial = EnsurePrototypeMaterial(
-                "MAT_PrototypeEnemyMedium",
+            Material armorMaterial = EnsurePrototypeMaterial(
+                "MAT_PrototypeEnemyArmor",
                 new Color(0.24f, 0.04f, 0.05f));
             Material markerMaterial = EnsurePrototypeMaterial(
                 "MAT_PrototypeEnemyMarker",
                 new Color(1f, 0.27f, 0.08f));
 
             EnemyConfig weakConfig = EnsureEnemyConfig(
-                WeakRusherConfigPath,
-                "rusher_weak",
-                "Weak Rusher",
-                64f,
+                NormalRusherConfigPath,
+                "rusher",
+                "Rusher",
+                1f,
                 2f,
                 1,
                 0.55f,
                 1f);
-            EnemyConfig mediumConfig = EnsureEnemyConfig(
-                MediumRusherConfigPath,
-                "rusher_medium",
-                "Medium Rusher",
-                180f,
-                1.25f,
-                2,
-                0.62f,
-                1.12f);
             LevelConfig levelConfig = EnsurePrototypeCombatLevel(
-                weakConfig,
-                mediumConfig);
+                weakConfig);
             GameObject enemyPrefab = EnsureEnemyRusherPrefab(
                 weakMaterial,
-                mediumMaterial,
+                armorMaterial,
                 markerMaterial);
 
             AssetDatabase.SaveAssets();
@@ -120,8 +108,7 @@ namespace ProjectGatefront.Editor
         }
 
         private static LevelConfig EnsurePrototypeCombatLevel(
-            EnemyConfig weakConfig,
-            EnemyConfig mediumConfig)
+            EnemyConfig normalEnemy)
         {
             LevelConfig level = AssetDatabase.LoadAssetAtPath<LevelConfig>(
                 PrototypeCombatLevelPath);
@@ -131,23 +118,22 @@ namespace ProjectGatefront.Editor
                 AssetDatabase.CreateAsset(level, PrototypeCombatLevelPath);
             }
 
-            var waves = new List<EnemyWaveDefinition>
+            var sections = new List<CombatSectionDefinition>
             {
-                new EnemyWaveDefinition(8f, weakConfig, 5, EnemySpawnPattern.Row, 1, 1.15f, 1.1f, 0f, 34f),
-                new EnemyWaveDefinition(60f, weakConfig, 10, EnemySpawnPattern.Grid, 2, 1.15f, 1.1f, 0f, 34f),
-                new EnemyWaveDefinition(120f, weakConfig, 15, EnemySpawnPattern.Cluster, 3, 1.1f, 1.05f, 0f, 34f),
-                new EnemyWaveDefinition(185f, mediumConfig, 10, EnemySpawnPattern.Grid, 2, 1.25f, 1.15f, 0f, 35f),
-                new EnemyWaveDefinition(255f, weakConfig, 25, EnemySpawnPattern.Grid, 5, 1.05f, 1f, 0f, 34f),
-                new EnemyWaveDefinition(330f, mediumConfig, 40, EnemySpawnPattern.Cluster, 5, 0.95f, 0.95f, 0f, 36f)
+                new CombatSectionDefinition(0f, 80f, 1f, 3, 5, EnemySpawnPattern.Cluster, 2, 1.1f, 1.1f, 0f, 30f),
+                new CombatSectionDefinition(80f, 180f, 0.6f, 5, 7, EnemySpawnPattern.Grid, 2, 1.05f, 1f, 0f, 31f),
+                new CombatSectionDefinition(180f, 300f, 0.35f, 8, 10, EnemySpawnPattern.Cluster, 3, 0.95f, 1f, 0f, 32f),
+                new CombatSectionDefinition(300f, 420f, 0.22f, 10, 13, EnemySpawnPattern.Grid, 3, 0.9f, 0.95f, 0f, 33f),
+                new CombatSectionDefinition(420f, 600f, 0.16f, 12, 16, EnemySpawnPattern.Cluster, 4, 0.85f, 0.9f, 0f, 34f)
             };
-            level.ConfigureEnemyWaves(waves, 100);
+            level.ConfigureCombat(normalEnemy, sections, 100, 520f);
             EditorUtility.SetDirty(level);
             return level;
         }
 
         private static GameObject EnsureEnemyRusherPrefab(
             Material weakMaterial,
-            Material mediumMaterial,
+            Material armorMaterial,
             Material markerMaterial)
         {
             GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
@@ -180,7 +166,7 @@ namespace ProjectGatefront.Editor
                     PrimitiveType.Cube,
                     new Vector3(0f, 1f, 0.05f),
                     new Vector3(0.92f, 0.56f, 0.5f),
-                    mediumMaterial);
+                    armorMaterial);
                 EnsureCombatPrimitive(
                     visualRoot,
                     "HeadMarker",
@@ -281,10 +267,10 @@ namespace ProjectGatefront.Editor
             enemyPool.Configure(
                 enemyPrefab.GetComponent<EnemyController>(),
                 enemyContainer,
-                60,
+                100,
                 0.12f,
                 4f);
-            EnemyWaveDirector director = EnsureComponent<EnemyWaveDirector>(
+            ContinuousEnemyDirector director = EnsureComponent<ContinuousEnemyDirector>(
                 combatRoot.gameObject,
                 out _);
             director.Configure(

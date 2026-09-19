@@ -27,6 +27,10 @@ effective projectile lifetime, and targeting cosine. This separation allows futu
 permanent progression and temporary run upgrades to combine with the same base
 weapon without saving changes into project assets.
 
+Normal Rushers always die to one valid bullet; future progression should
+primarily improve fire rate, multi-shot, penetration, spread/coverage, weapon
+type, and sustained Giant damage. It must not create normal-enemy HP tiers.
+
 The current tier enum provides Tier 1 through Tier 5 as an organizational
 foundation, not final balance. The modifier path already supports damage, fire rate,
 additional projectiles, and penetration. A later equipment system can swap the
@@ -48,8 +52,11 @@ feedback without material instances or per-shot object creation.
 
 `TargetRegistry` is the authoritative collection of `ITargetable` objects. Targets
 register and unregister explicitly. `SquadWeaponSystem` scans that compact list ten
-times per second. It maintains an ordered cache of up to 32 nearest valid forward
-candidates and distributes shooters round-robin across that cache. This reduces
+times per second. It maintains an ordered cache of up to 100 nearest valid forward
+candidates and assigns distinct unclaimed targets when possible. Each fired
+projectile provisionally reserves its target until impact or expiry; misses release
+their reservation. If shooters outnumber targets, duplicate assignments are
+balanced instead of concentrating on the nearest enemy. This reduces one-hit
 horde overkill without per-soldier scene searches or sorts. Objects behind the
 squad, outside weapon range, outside the targeting cone, or no longer targetable are
 rejected.
@@ -60,7 +67,8 @@ with infantry, heavy enemies, bosses, or destructible objects.
 
 ## Projectile pooling and collision
 
-`ProjectilePool` prewarms a bounded capacity calculated from shooter count, fire
+`ProjectilePool` prewarms a bounded capacity calculated from configured maximum
+shooter count, fire
 rate, projectile count, and useful projectile lifetime. It reuses inactive objects,
 expands only when necessary, and removes active entries in constant time. The
 prototype projectile is kinematic: it advances with `deltaTime` and performs a

@@ -10,7 +10,6 @@ namespace ProjectGatefront.Gameplay.Enemies
     [RequireComponent(typeof(EnemyMotor))]
     public sealed class EnemyController : MonoBehaviour, ITargetable, IDamageable
     {
-        private const float HitFeedbackDuration = 0.07f;
         private const float DeathFeedbackDuration = 0.14f;
 
         [SerializeField] private Transform visualRoot;
@@ -22,7 +21,6 @@ namespace ProjectGatefront.Gameplay.Enemies
         private EnemyConfig config;
         private Vector3 authoredVisualScale = Vector3.one;
         private Vector3 activeVisualScale = Vector3.one;
-        private float hitFeedbackRemaining;
         private float deathFeedbackRemaining;
         private bool contactEvaluated;
 
@@ -41,7 +39,9 @@ namespace ProjectGatefront.Gameplay.Enemies
 
         public float CurrentHealth { get; private set; }
 
-        public float MaximumHealth => config == null ? 0f : config.MaximumHealth;
+        // EnemyController represents normal infantry only. Bosses use a separate
+        // health model, so every valid projectile hit is lethal here.
+        public float MaximumHealth => config == null ? 0f : 1f;
 
         public EnemyConfig Config => config;
 
@@ -95,10 +95,9 @@ namespace ProjectGatefront.Gameplay.Enemies
             motor.Configure(config.ApproachSpeed);
             WaveIndex = waveIndex;
             SpawnSequence = spawnSequence;
-            CurrentHealth = config.MaximumHealth;
+            CurrentHealth = 1f;
             State = EnemyRuntimeState.Approaching;
             contactEvaluated = false;
-            hitFeedbackRemaining = 0f;
             deathFeedbackRemaining = 0f;
             transform.SetPositionAndRotation(worldPosition, Quaternion.identity);
             activeVisualScale = authoredVisualScale * config.VisualScale;
@@ -122,20 +121,9 @@ namespace ProjectGatefront.Gameplay.Enemies
                 return new DamageResult(0f, Mathf.Max(0f, CurrentHealth), false);
             }
 
-            float previousHealth = CurrentHealth;
-            CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
-            float appliedDamage = previousHealth - CurrentHealth;
-            bool killed = CurrentHealth <= 0f;
-            if (killed)
-            {
-                BeginDeath();
-            }
-            else
-            {
-                hitFeedbackRemaining = HitFeedbackDuration;
-            }
-
-            return new DamageResult(appliedDamage, CurrentHealth, killed);
+            CurrentHealth = 0f;
+            BeginDeath();
+            return new DamageResult(1f, 0f, true);
         }
 
         public void Tick(
@@ -158,7 +146,6 @@ namespace ProjectGatefront.Gameplay.Enemies
             }
 
             motor.Advance(worldScrollSpeed, deltaTime, worldMovementEnabled);
-            TickHitFeedback(deltaTime);
 
             if (State == EnemyRuntimeState.Approaching
                 && !contactEvaluated
@@ -206,7 +193,6 @@ namespace ProjectGatefront.Gameplay.Enemies
             SpawnSequence = 0;
             PoolIndex = -1;
             contactEvaluated = false;
-            hitFeedbackRemaining = 0f;
             deathFeedbackRemaining = 0f;
             if (visualRoot != null)
             {
@@ -231,28 +217,6 @@ namespace ProjectGatefront.Gameplay.Enemies
             registry.Unregister(this);
             deathFeedbackRemaining = DeathFeedbackDuration;
             owner.NotifyEnemyKilled(this);
-        }
-
-        private void TickHitFeedback(float deltaTime)
-        {
-            if (visualRoot == null)
-            {
-                return;
-            }
-
-            if (hitFeedbackRemaining > 0f)
-            {
-                hitFeedbackRemaining = Mathf.Max(
-                    0f,
-                    hitFeedbackRemaining - deltaTime);
-                float normalized = hitFeedbackRemaining / HitFeedbackDuration;
-                visualRoot.localScale = activeVisualScale
-                    * (1f + (normalized * 0.12f));
-            }
-            else if (visualRoot.localScale != activeVisualScale)
-            {
-                visualRoot.localScale = activeVisualScale;
-            }
         }
 
         private void TickDeathFeedback(float deltaTime)

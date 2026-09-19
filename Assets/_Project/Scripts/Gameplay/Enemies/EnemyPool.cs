@@ -14,7 +14,7 @@ namespace ProjectGatefront.Gameplay.Enemies
     {
         [SerializeField] private EnemyController enemyPrefab;
         [SerializeField] private Transform enemyContainer;
-        [SerializeField, Range(1, 100)] private int prewarmCapacity = 60;
+        [SerializeField, Range(1, 100)] private int prewarmCapacity = 100;
         [SerializeField, Min(0f)] private float contactPadding = 0.12f;
         [SerializeField, Min(0.5f)] private float passBehindDistance = 4f;
 

@@ -17,19 +17,53 @@ namespace ProjectGatefront.Tests.PlayMode
     public sealed class EnemyCombatGameplayTests
     {
         [UnityTest]
-        public IEnumerator AlignedContact_AppliesCasualtiesAndRecompacts()
+        public IEnumerator OneProjectileHit_KillsNormalEnemyImmediately()
         {
             yield return LoadGameplayScene();
-            EnemyWaveDirector director =
-                Object.FindFirstObjectByType<EnemyWaveDirector>();
+            ContinuousEnemyDirector director =
+                Object.FindFirstObjectByType<ContinuousEnemyDirector>();
             SquadWeaponSystem weapons =
                 Object.FindFirstObjectByType<SquadWeaponSystem>();
             SquadController squad =
                 Object.FindFirstObjectByType<SquadController>();
             director.ResetCombat();
-            director.SetWaveSchedulingEnabled(false);
+            director.SetSpawnSchedulingEnabled(false);
             weapons.SetCombatEnabled(false);
-            EnemyConfig medium = director.LevelConfig.EnemyWaves[3].EnemyConfig;
+
+            EnemyController enemy = director.EnemyPool.Spawn(
+                director.LevelConfig.NormalEnemy,
+                new Vector3(0f, 0f, squad.CombatContactZ + 12f),
+                -1);
+            Vector3 aim = enemy.AimPosition;
+            Projectile projectile = weapons.ProjectilePool.Acquire(
+                aim - (Vector3.forward * 1.5f),
+                Vector3.forward,
+                weapons.CurrentRuntimeStats);
+            projectile.Tick(0.1f);
+
+            Assert.That(enemy.MaximumHealth, Is.EqualTo(1f));
+            Assert.That(enemy.CurrentHealth, Is.Zero);
+            Assert.That(enemy.IsTargetable, Is.False);
+            Assert.That(enemy.State, Is.EqualTo(EnemyRuntimeState.Dying));
+            Assert.That(weapons.ActiveTargetCount, Is.Zero);
+            Assert.That(projectile.IsLaunched, Is.False);
+            Assert.That(enemy.ApplyDamage(1f).AppliedDamage, Is.Zero);
+        }
+
+        [UnityTest]
+        public IEnumerator AlignedContact_AppliesCasualtiesAndRecompacts()
+        {
+            yield return LoadGameplayScene();
+            ContinuousEnemyDirector director =
+                Object.FindFirstObjectByType<ContinuousEnemyDirector>();
+            SquadWeaponSystem weapons =
+                Object.FindFirstObjectByType<SquadWeaponSystem>();
+            SquadController squad =
+                Object.FindFirstObjectByType<SquadController>();
+            director.ResetCombat();
+            director.SetSpawnSchedulingEnabled(false);
+            weapons.SetCombatEnabled(false);
+            EnemyConfig normal = director.LevelConfig.NormalEnemy;
             int startingCount = squad.CurrentUnitCount;
             int startingRevision = squad.FormationRevision;
             int reportedCasualties = 0;
@@ -37,16 +71,16 @@ namespace ProjectGatefront.Tests.PlayMode
                 (_, casualties) => reportedCasualties += casualties;
 
             director.EnemyPool.Spawn(
-                medium,
+                normal,
                 new Vector3(
                     squad.transform.position.x,
                     0f,
-                    squad.CombatContactZ + medium.TargetRadius + 0.02f),
+                    squad.CombatContactZ + normal.TargetRadius + 0.02f),
                 -1);
             yield return new WaitForSeconds(0.1f);
 
-            Assert.That(reportedCasualties, Is.EqualTo(2));
-            Assert.That(squad.CurrentUnitCount, Is.EqualTo(startingCount - 2));
+            Assert.That(reportedCasualties, Is.EqualTo(1));
+            Assert.That(squad.CurrentUnitCount, Is.EqualTo(startingCount - 1));
             Assert.That(squad.ActiveUnitCount, Is.EqualTo(squad.CurrentUnitCount));
             Assert.That(squad.FormationRevision, Is.GreaterThan(startingRevision));
             Assert.That(director.EnemyPool.ActiveEnemyCount, Is.Zero);
@@ -56,8 +90,8 @@ namespace ProjectGatefront.Tests.PlayMode
         public IEnumerator LateralDodge_AllowsEnemyToPassWithoutCasualty()
         {
             yield return LoadGameplayScene();
-            EnemyWaveDirector director =
-                Object.FindFirstObjectByType<EnemyWaveDirector>();
+            ContinuousEnemyDirector director =
+                Object.FindFirstObjectByType<ContinuousEnemyDirector>();
             SquadWeaponSystem weapons =
                 Object.FindFirstObjectByType<SquadWeaponSystem>();
             SquadController squad =
@@ -65,9 +99,9 @@ namespace ProjectGatefront.Tests.PlayMode
             PlayerController player =
                 Object.FindFirstObjectByType<PlayerController>();
             director.ResetCombat();
-            director.SetWaveSchedulingEnabled(false);
+            director.SetSpawnSchedulingEnabled(false);
             weapons.SetCombatEnabled(false);
-            EnemyConfig weak = director.LevelConfig.EnemyWaves[0].EnemyConfig;
+            EnemyConfig weak = director.LevelConfig.NormalEnemy;
 
             Vector3 playerPosition = player.transform.position;
             playerPosition.x = squad.MaximumRootX;
@@ -110,8 +144,8 @@ namespace ProjectGatefront.Tests.PlayMode
             yield return LoadGameplayScene();
             GameplayBootstrap bootstrap =
                 Object.FindFirstObjectByType<GameplayBootstrap>();
-            EnemyWaveDirector director =
-                Object.FindFirstObjectByType<EnemyWaveDirector>();
+            ContinuousEnemyDirector director =
+                Object.FindFirstObjectByType<ContinuousEnemyDirector>();
             SquadWeaponSystem weapons =
                 Object.FindFirstObjectByType<SquadWeaponSystem>();
             SquadController squad =
@@ -119,8 +153,8 @@ namespace ProjectGatefront.Tests.PlayMode
             WorldScroller world =
                 Object.FindFirstObjectByType<WorldScroller>();
             director.ResetCombat();
-            director.SetWaveSchedulingEnabled(false);
-            EnemyConfig weak = director.LevelConfig.EnemyWaves[0].EnemyConfig;
+            director.SetSpawnSchedulingEnabled(false);
+            EnemyConfig weak = director.LevelConfig.NormalEnemy;
             EnemyController enemy = director.EnemyPool.Spawn(
                 weak,
                 new Vector3(0f, 0f, squad.CombatContactZ + 12f),
@@ -149,35 +183,38 @@ namespace ProjectGatefront.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator FiftySoldiersAndSixtyEnemies_RemainBoundedAndDistributed()
+        public IEnumerator FiftySoldiersAndOneHundredEnemies_RemainBoundedAndDistributed()
         {
             yield return LoadGameplayScene();
-            EnemyWaveDirector director =
-                Object.FindFirstObjectByType<EnemyWaveDirector>();
+            ContinuousEnemyDirector director =
+                Object.FindFirstObjectByType<ContinuousEnemyDirector>();
             SquadWeaponSystem weapons =
                 Object.FindFirstObjectByType<SquadWeaponSystem>();
             SquadController squad =
                 Object.FindFirstObjectByType<SquadController>();
             director.ResetCombat();
-            director.SetWaveSchedulingEnabled(false);
-            EnemyConfig medium = director.LevelConfig.EnemyWaves[3].EnemyConfig;
+            director.SetSpawnSchedulingEnabled(false);
+            EnemyConfig normal = director.LevelConfig.NormalEnemy;
             Assert.That(squad.AddUnits(30), Is.EqualTo(30));
             Assert.That(squad.CurrentUnitCount, Is.EqualTo(50));
 
             float spawnZ = squad.CombatContactZ + 20f;
-            for (int index = 0; index < 60; index++)
+            for (int index = 0; index < 100; index++)
             {
                 int row = index / 10;
                 int column = index % 10;
                 float x = (column - 4.5f) * 0.75f;
                 director.EnemyPool.Spawn(
-                    medium,
+                    normal,
                     new Vector3(x, 0f, spawnZ + (row * 0.8f)),
                     -1);
             }
 
-            yield return new WaitForSeconds(0.2f);
-            Assert.That(director.EnemyPool.ActiveEnemyCount, Is.EqualTo(60));
+            Assert.That(director.EnemyPool.ActiveEnemyCount, Is.EqualTo(100));
+            Assert.That(
+                director.EnemyPool.Spawn(normal, new Vector3(0f, 0f, spawnZ), -1),
+                Is.Null);
+            yield return new WaitForSeconds(0.1f);
             Assert.That(weapons.ShooterCount, Is.EqualTo(50));
             Assert.That(weapons.AssignedTargetCount, Is.GreaterThan(5));
             var activeWeapons = new List<WeaponController>();
@@ -191,7 +228,7 @@ namespace ProjectGatefront.Tests.PlayMode
                 }
             }
 
-            Assert.That(targets.Count, Is.GreaterThan(5));
+            Assert.That(targets.Count, Is.GreaterThanOrEqualTo(40));
             yield return new WaitForSeconds(0.5f);
             Assert.That(director.EnemyPool.TotalCreated, Is.LessThanOrEqualTo(100));
             Assert.That(weapons.TotalProjectileCapacity, Is.LessThanOrEqualTo(512));
@@ -202,13 +239,13 @@ namespace ProjectGatefront.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator AuthoredWave_CompletesAndPrototypeResetRestoresRun()
+        public IEnumerator ContinuousGroups_BossTriggerAndResetRestoreRun()
         {
             yield return LoadGameplayScene();
             GameplayBootstrap bootstrap =
                 Object.FindFirstObjectByType<GameplayBootstrap>();
-            EnemyWaveDirector director =
-                Object.FindFirstObjectByType<EnemyWaveDirector>();
+            ContinuousEnemyDirector director =
+                Object.FindFirstObjectByType<ContinuousEnemyDirector>();
             SquadWeaponSystem weapons =
                 Object.FindFirstObjectByType<SquadWeaponSystem>();
             SquadController squad =
@@ -218,39 +255,73 @@ namespace ProjectGatefront.Tests.PlayMode
             director.ResetCombat();
             world.ResetScroll();
             weapons.SetCombatEnabled(false);
-            int startedEvents = 0;
-            int completedEvents = 0;
-            director.WaveStarted += (waveNumber, wave) => startedEvents++;
-            director.WaveCompleted += _ => completedEvents++;
+            int groupEvents = 0;
+            int bossEvents = 0;
+            director.GroupSpawned += (_, count) => groupEvents++;
+            director.BossSpawnRequested += () => bossEvents++;
 
+            director.Tick();
+            Assert.That(groupEvents, Is.EqualTo(1));
+            Assert.That(director.EnemyPool.ActiveEnemyCount, Is.GreaterThan(0));
+            int firstGroupCount = director.EnemyPool.ActiveEnemyCount;
             world.Tick(1f);
-            yield return null;
-            Assert.That(world.DistanceTravelled, Is.GreaterThanOrEqualTo(8f));
-            Assert.That(director.StartedWaveCount, Is.EqualTo(1));
-            Assert.That(startedEvents, Is.EqualTo(1));
-            Assert.That(director.EnemyPool.ActiveEnemyCount, Is.EqualTo(5));
+            director.Tick();
+            Assert.That(groupEvents, Is.GreaterThan(1));
+            Assert.That(director.EnemyPool.ActiveEnemyCount, Is.GreaterThan(firstGroupCount));
 
-            var enemies = new List<EnemyController>();
-            director.EnemyPool.CopyActiveEnemiesTo(enemies);
-            for (int index = 0; index < enemies.Count; index++)
-            {
-                enemies[index].ApplyDamage(enemies[index].MaximumHealth + 1f);
-            }
-
-            yield return new WaitForSeconds(0.25f);
-            Assert.That(director.EnemyPool.ActiveEnemyCount, Is.Zero);
-            Assert.That(director.CompletedWaveCount, Is.EqualTo(1));
-            Assert.That(completedEvents, Is.EqualTo(1));
+            world.Tick(70f);
+            director.Tick();
+            director.Tick();
+            Assert.That(director.BossTriggerReached, Is.True);
+            Assert.That(bossEvents, Is.EqualTo(1));
+            Assert.That(director.EnemyPool.ActiveEnemyCount, Is.GreaterThan(0));
 
             bootstrap.ResetPrototypeRun();
             Assert.That(bootstrap.IsDefeated, Is.False);
             Assert.That(squad.CurrentUnitCount, Is.EqualTo(20));
-            Assert.That(director.StartedWaveCount, Is.Zero);
-            Assert.That(director.CompletedWaveCount, Is.Zero);
+            Assert.That(director.ScheduledGroupCount, Is.Zero);
+            Assert.That(director.BossTriggerReached, Is.False);
             Assert.That(director.EnemyPool.ActiveEnemyCount, Is.Zero);
             Assert.That(world.DistanceTravelled, Is.Zero);
             Assert.That(world.ScrollingEnabled, Is.True);
             Assert.That(weapons.ProjectilePool.SimulationEnabled, Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator DensitySections_AdvanceWithoutWaitingForEnemyClear()
+        {
+            yield return LoadGameplayScene();
+            ContinuousEnemyDirector director =
+                Object.FindFirstObjectByType<ContinuousEnemyDirector>();
+            SquadWeaponSystem weapons =
+                Object.FindFirstObjectByType<SquadWeaponSystem>();
+            WorldScroller world =
+                Object.FindFirstObjectByType<WorldScroller>();
+            director.ResetCombat();
+            world.ResetScroll();
+            weapons.SetCombatEnabled(false);
+
+            world.Tick(11f);
+            for (int index = 0; index < 8; index++)
+            {
+                director.Tick();
+            }
+
+            Assert.That(director.CurrentSectionNumber, Is.EqualTo(2));
+            int groupsAtMediumDensity = director.ScheduledGroupCount;
+            world.Tick(14f);
+            for (int index = 0; index < 12; index++)
+            {
+                director.Tick();
+            }
+
+            Assert.That(director.CurrentSectionNumber, Is.GreaterThanOrEqualTo(3));
+            Assert.That(director.ScheduledGroupCount, Is.GreaterThan(groupsAtMediumDensity));
+            Assert.That(director.EnemyPool.ActiveEnemyCount, Is.GreaterThan(0));
+            Assert.That(
+                director.EnemyPool.ActiveEnemyCount,
+                Is.LessThanOrEqualTo(director.LevelConfig.ActiveEnemyLimit));
+            LogAssert.NoUnexpectedReceived();
         }
 
         private static IEnumerator LoadGameplayScene()

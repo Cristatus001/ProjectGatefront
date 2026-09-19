@@ -433,7 +433,7 @@ MonoBehaviour:
   worldScroller: {fileID: 2051813532}
   testTargets: []
   targetRefreshInterval: 0.1
-  maximumDistributedTargets: 32
+  maximumDistributedTargets: 100
   debugOverlayEnabled: 1
 --- !u!114 &859246778
 MonoBehaviour:
@@ -489,7 +489,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1f58487ebc609714c8b122bd851e75a9, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: ProjectGatefront.Gameplay::ProjectGatefront.Gameplay.Enemies.EnemyWaveDirector
+  m_EditorClassIdentifier: ProjectGatefront.Gameplay::ProjectGatefront.Gameplay.Enemies.ContinuousEnemyDirector
   levelConfig: {fileID: 11400000, guid: 1b8b98c4ea70ae148869c1c75964ff5d, type: 2}
   enemyPool: {fileID: 859246782}
   targetRegistry: {fileID: 859246780}
@@ -511,7 +511,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: ProjectGatefront.Gameplay::ProjectGatefront.Gameplay.Enemies.EnemyPool
   enemyPrefab: {fileID: 7241411158425275465, guid: d7a864c9a4e2b0f49b1ba22b76160daa, type: 3}
   enemyContainer: {fileID: 1273954824}
-  prewarmCapacity: 60
+  prewarmCapacity: 100
   contactPadding: 0.12
   passBehindDistance: 4
 --- !u!1 &953228177
@@ -1022,7 +1022,7 @@ MonoBehaviour:
   gameBalanceConfig: {fileID: 11400000, guid: 5f41030db6829154b917b20900f30951, type: 2}
   worldScroller: {fileID: 2051813532}
   squadWeaponSystem: {fileID: 859246777}
-  enemyWaveDirector: {fileID: 859246781}
+  continuousEnemyDirector: {fileID: 859246781}
   movementEnabledOnStart: 1
 --- !u!4 &1748461933
 Transform:

@@ -8,17 +8,40 @@ namespace ProjectGatefront.Gameplay.Enemies
     public static class EnemySpawnPatternMath
     {
         public static void GenerateOffsets(
-            EnemyWaveDefinition wave,
+            CombatSectionDefinition section,
             float roadHalfWidth,
             float enemyRadius,
             int count,
             List<Vector3> results)
         {
-            if (wave == null)
+            if (section == null)
             {
-                throw new ArgumentNullException(nameof(wave));
+                throw new ArgumentNullException(nameof(section));
             }
 
+            GenerateOffsets(
+                section.SpawnPattern,
+                section.RowCount,
+                section.ColumnSpacing,
+                section.RowSpacing,
+                section.LaneCenterX,
+                roadHalfWidth,
+                enemyRadius,
+                count,
+                results);
+        }
+
+        private static void GenerateOffsets(
+            EnemySpawnPattern pattern,
+            int rowCount,
+            float columnSpacing,
+            float rowSpacing,
+            float laneCenterX,
+            float roadHalfWidth,
+            float enemyRadius,
+            int count,
+            List<Vector3> results)
+        {
             if (results == null)
             {
                 throw new ArgumentNullException(nameof(results));
@@ -34,7 +57,7 @@ namespace ProjectGatefront.Gameplay.Enemies
             float usableHalfWidth = Mathf.Max(
                 0f,
                 roadHalfWidth - Mathf.Max(0f, enemyRadius));
-            switch (wave.SpawnPattern)
+            switch (pattern)
             {
                 case EnemySpawnPattern.Row:
                     AddRow(
@@ -42,14 +65,16 @@ namespace ProjectGatefront.Gameplay.Enemies
                         0,
                         1,
                         false,
-                        wave,
+                        columnSpacing,
+                        rowSpacing,
+                        laneCenterX,
                         usableHalfWidth,
                         results);
                     break;
 
                 case EnemySpawnPattern.Grid:
                 case EnemySpawnPattern.Cluster:
-                    int rows = Mathf.Clamp(wave.RowCount, 1, safeCount);
+                    int rows = Mathf.Clamp(rowCount, 1, safeCount);
                     int columns = Mathf.CeilToInt(safeCount / (float)rows);
                     int remaining = safeCount;
                     for (int row = 0; row < rows && remaining > 0; row++)
@@ -59,8 +84,10 @@ namespace ProjectGatefront.Gameplay.Enemies
                             unitsInRow,
                             row,
                             rows,
-                            wave.SpawnPattern == EnemySpawnPattern.Cluster,
-                            wave,
+                            pattern == EnemySpawnPattern.Cluster,
+                            columnSpacing,
+                            rowSpacing,
+                            laneCenterX,
                             usableHalfWidth,
                             results);
                         remaining -= unitsInRow;
@@ -69,8 +96,8 @@ namespace ProjectGatefront.Gameplay.Enemies
 
                 default:
                     throw new ArgumentOutOfRangeException(
-                        nameof(wave.SpawnPattern),
-                        wave.SpawnPattern,
+                        nameof(pattern),
+                        pattern,
                         "Unsupported enemy spawn pattern.");
             }
         }
@@ -80,23 +107,25 @@ namespace ProjectGatefront.Gameplay.Enemies
             int row,
             int totalRows,
             bool staggered,
-            EnemyWaveDefinition wave,
+            float columnSpacing,
+            float rowSpacing,
+            float laneCenterX,
             float usableHalfWidth,
             List<Vector3> results)
         {
             float rowCenterOffset = staggered && row % 2 == 1
-                ? wave.ColumnSpacing * 0.5f
+                ? columnSpacing * 0.5f
                 : 0f;
-            float center = wave.LaneCenterX + rowCenterOffset;
-            float width = Mathf.Max(0, unitsInRow - 1) * wave.ColumnSpacing;
+            float center = laneCenterX + rowCenterOffset;
+            float width = Mathf.Max(0, unitsInRow - 1) * columnSpacing;
             float startX = center - (width * 0.5f);
             float centeredRow = row - ((totalRows - 1) * 0.5f);
-            float z = centeredRow * wave.RowSpacing;
+            float z = centeredRow * rowSpacing;
 
             for (int column = 0; column < unitsInRow; column++)
             {
                 float x = Mathf.Clamp(
-                    startX + (column * wave.ColumnSpacing),
+                    startX + (column * columnSpacing),
                     -usableHalfWidth,
                     usableHalfWidth);
                 results.Add(new Vector3(x, 0f, z));

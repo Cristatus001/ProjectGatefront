@@ -34,10 +34,10 @@ namespace ProjectGatefront.Tests.PlayMode
                 Object.FindFirstObjectByType<SquadController>();
             SquadWeaponSystem weapons =
                 Object.FindFirstObjectByType<SquadWeaponSystem>();
-            EnemyWaveDirector director =
-                Object.FindFirstObjectByType<EnemyWaveDirector>();
+            ContinuousEnemyDirector director =
+                Object.FindFirstObjectByType<ContinuousEnemyDirector>();
             EnemyPool enemyPool = director.EnemyPool;
-            EnemyConfig weakConfig = director.LevelConfig.EnemyWaves[0].EnemyConfig;
+            EnemyConfig weakConfig = director.LevelConfig.NormalEnemy;
 
             Assert.That(bootstrap.IsInitialized, Is.True);
             Assert.That(squad.CurrentUnitCount, Is.EqualTo(20));
@@ -49,7 +49,7 @@ namespace ProjectGatefront.Tests.PlayMode
                 Is.Zero);
 
             director.ResetCombat();
-            director.SetWaveSchedulingEnabled(false);
+            director.SetSpawnSchedulingEnabled(false);
             float spawnZ = squad.CombatContactZ + 18f;
             var spawned = new List<EnemyController>();
             for (int index = 0; index < 10; index++)
@@ -95,19 +95,15 @@ namespace ProjectGatefront.Tests.PlayMode
 
             Assert.That(damageObserved, Is.True);
 
+            weapons.SetCombatEnabled(false);
+            director.ResetCombat();
+            director.SetSpawnSchedulingEnabled(false);
+            EnemyController reusable = enemyPool.Spawn(
+                weakConfig,
+                new Vector3(0f, 0f, spawnZ),
+                -1);
             int capacity = enemyPool.TotalCreated;
-            EnemyController reusable = null;
-            for (int index = 0; index < spawned.Count; index++)
-            {
-                if (spawned[index].IsTargetable)
-                {
-                    reusable = spawned[index];
-                    break;
-                }
-            }
-
-            Assert.That(reusable, Is.Not.Null);
-            reusable.ApplyDamage(reusable.MaximumHealth + 1f);
+            Assert.That(reusable.ApplyDamage(1f).WasKilled, Is.True);
             yield return new WaitForSeconds(0.2f);
             EnemyController reused = enemyPool.Spawn(
                 weakConfig,
@@ -117,7 +113,8 @@ namespace ProjectGatefront.Tests.PlayMode
             Assert.That(enemyPool.TotalCreated, Is.EqualTo(capacity));
 
             director.ResetCombat();
-            director.SetWaveSchedulingEnabled(false);
+            director.SetSpawnSchedulingEnabled(false);
+            weapons.SetCombatEnabled(true);
             yield return new WaitForSeconds(0.15f);
             int shotsWithoutTargets = weapons.TotalShotsFired;
             yield return new WaitForSeconds(0.35f);

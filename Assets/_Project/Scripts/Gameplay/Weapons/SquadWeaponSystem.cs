@@ -20,7 +20,7 @@ namespace ProjectGatefront.Gameplay.Weapons
         [SerializeField] private List<CombatTargetDummy> testTargets =
             new List<CombatTargetDummy>();
         [SerializeField, Range(0.05f, 0.5f)] private float targetRefreshInterval = 0.1f;
-        [SerializeField, Range(1, 50)] private int maximumDistributedTargets = 32;
+        [SerializeField, Range(1, 100)] private int maximumDistributedTargets = 100;
 
         [Header("Development")]
         [SerializeField] private bool debugOverlayEnabled = true;
@@ -29,7 +29,13 @@ namespace ProjectGatefront.Gameplay.Weapons
         private readonly List<WeaponController> activeWeapons =
             new List<WeaponController>(50);
         private readonly List<ITargetable> targetCandidates =
-            new List<ITargetable>(32);
+            new List<ITargetable>(100);
+        private readonly Dictionary<ITargetable, int> assignmentsThisPass =
+            new Dictionary<ITargetable, int>(100);
+        private readonly Dictionary<ITargetable, int> targetReservations =
+            new Dictionary<ITargetable, int>(100);
+        private readonly Dictionary<Projectile, ITargetable> projectileClaims =
+            new Dictionary<Projectile, ITargetable>(512);
         private WeaponRuntimeStats runtimeStats;
         private ITargetable currentTarget;
         private float targetRefreshRemaining;
@@ -67,9 +73,13 @@ namespace ProjectGatefront.Gameplay.Weapons
 
         public string CurrentWeaponName => runtimeStats.DisplayName;
 
+        public WeaponRuntimeStats CurrentRuntimeStats => runtimeStats;
+
         public ITargetable CurrentTarget => currentTarget;
 
         public int AssignedTargetCount => targetCandidates.Count;
+
+        public int ReservedTargetCount => targetReservations.Count;
 
         public ProjectilePool ProjectilePool => projectilePool;
 
@@ -148,7 +158,8 @@ namespace ProjectGatefront.Gameplay.Weapons
             projectilePool.Initialize(
                 targetRegistry,
                 runtimeStats,
-                squadController.CurrentUnitCount);
+                squadController.ConfiguredMaximumUnitCount);
+            projectilePool.ProjectileReleased += HandleProjectileReleased;
 
             for (int index = 0; index < testTargets.Count; index++)
             {
@@ -207,6 +218,8 @@ namespace ProjectGatefront.Gameplay.Weapons
         public void ResetCombat()
         {
             projectilePool.ResetPool();
+            projectileClaims.Clear();
+            targetReservations.Clear();
             targetRegistry.Clear();
             for (int index = 0; index < testTargets.Count; index++)
             {
@@ -282,6 +295,11 @@ namespace ProjectGatefront.Gameplay.Weapons
 
         private void RefreshShooters()
         {
+            for (int index = 0; index < activeWeapons.Count; index++)
+            {
+                activeWeapons[index].ProjectileCommitted -= HandleProjectileCommitted;
+            }
+
             squadController.CopyActiveUnitsTo(activeUnits);
             activeWeapons.Clear();
             for (int index = 0; index < activeUnits.Count; index++)
@@ -302,25 +320,95 @@ namespace ProjectGatefront.Gameplay.Weapons
                     projectilePool,
                     index + 1,
                     CalculateCooldownPhase(index));
+                weapon.ProjectileCommitted += HandleProjectileCommitted;
                 weapon.SetFiringEnabled(combatEnabled);
-                weapon.SetTarget(targetCandidates.Count > 0
-                    ? targetCandidates[index % targetCandidates.Count]
-                    : null);
                 activeWeapons.Add(weapon);
             }
+
+            AssignTargets();
         }
 
         private void AssignTargets()
         {
-            currentTarget = targetCandidates.Count > 0
-                ? targetCandidates[0]
-                : null;
+            assignmentsThisPass.Clear();
+            currentTarget = null;
             for (int index = 0; index < activeWeapons.Count; index++)
             {
-                activeWeapons[index].SetTarget(targetCandidates.Count > 0
-                    ? targetCandidates[index % targetCandidates.Count]
-                    : null);
+                ITargetable selected = FindPreferredTarget();
+                activeWeapons[index].SetTarget(selected);
+                if (selected != null)
+                {
+                    assignmentsThisPass.TryGetValue(selected, out int assigned);
+                    assignmentsThisPass[selected] = assigned + 1;
+                    if (currentTarget == null)
+                    {
+                        currentTarget = selected;
+                    }
+                }
             }
+        }
+
+        private ITargetable FindPreferredTarget()
+        {
+            ITargetable selected = null;
+            int bestScore = int.MaxValue;
+            for (int index = 0; index < targetCandidates.Count; index++)
+            {
+                ITargetable candidate = targetCandidates[index];
+                if (candidate == null || !candidate.IsTargetable)
+                {
+                    continue;
+                }
+
+                assignmentsThisPass.TryGetValue(candidate, out int assigned);
+                targetReservations.TryGetValue(candidate, out int reserved);
+                int score = (reserved > 0 ? 1000 : 0) + assigned;
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    selected = candidate;
+                }
+            }
+
+            return selected;
+        }
+
+        private void HandleProjectileCommitted(
+            ITargetable target,
+            Projectile projectile)
+        {
+            if (target == null || projectile == null)
+            {
+                return;
+            }
+
+            projectileClaims[projectile] = target;
+            targetReservations.TryGetValue(target, out int count);
+            targetReservations[target] = count + 1;
+            targetRefreshRemaining = 0f;
+        }
+
+        private void HandleProjectileReleased(Projectile projectile)
+        {
+            if (!projectileClaims.TryGetValue(projectile, out ITargetable target))
+            {
+                return;
+            }
+
+            projectileClaims.Remove(projectile);
+            if (targetReservations.TryGetValue(target, out int count))
+            {
+                if (count <= 1)
+                {
+                    targetReservations.Remove(target);
+                }
+                else
+                {
+                    targetReservations[target] = count - 1;
+                }
+            }
+
+            targetRefreshRemaining = 0f;
         }
 
         private static float CalculateCooldownPhase(int shooterIndex)
@@ -333,6 +421,16 @@ namespace ProjectGatefront.Gameplay.Weapons
             if (squadController != null)
             {
                 squadController.SquadCountChanged -= HandleSquadCountChanged;
+            }
+
+            if (projectilePool != null)
+            {
+                projectilePool.ProjectileReleased -= HandleProjectileReleased;
+            }
+
+            for (int index = 0; index < activeWeapons.Count; index++)
+            {
+                activeWeapons[index].ProjectileCommitted -= HandleProjectileCommitted;
             }
         }
 

@@ -1,103 +1,83 @@
 # Project Gatefront — Enemy Combat System
 
-## Overview
+## Normal enemy rule
 
-Phase 5 replaces normal-scene target dummies with deterministic waves of pooled
-Rusher enemies. The squad remains fixed in Z, the battlefield continues to scroll,
-and the player controls only cohesive horizontal positioning. Enemies provide the
-first combat pressure: kill them before contact, or move the army out of their path.
+Every normal Rusher dies from **one valid projectile hit**, regardless of the
+prototype rifle's damage value. There are no weak/medium HP tiers in gameplay.
+Difficulty comes from group size, spawn interval, road coverage, and overlapping
+groups. `EnemyController` is the normal-infantry implementation; a future Giant
+must use a separate high-health controller and `BossConfig`, not this one-hit rule.
 
-## EnemyConfig
+Normal enemies test fire rate, projectile coverage, and army size. The Giant will
+test sustained boss damage. Future weapon upgrades should emphasize fire rate,
+multi-shot, penetration, spread/coverage, weapon type, and boss damage rather
+than raising normal-enemy HP. No upgrade economy is implemented here.
 
-`EnemyConfig` is the existing shared base asset for an enemy archetype. It now
-stores identity, display name, maximum health, independent approach speed,
-casualties on contact, target radius, a reserved reward value, and visual scale.
-Runtime enemies read but never mutate these assets. Weak and medium Rusher configs
-use the same code and prefab; stronger, faster, or visually larger future variants
-can remain data-driven.
+## Continuous level pressure
 
-## EnemyController and EnemyMotor
+`LevelConfig` owns one normal-enemy config, ordered `CombatSectionDefinition`
+entries, a 100-active-enemy cap, and `bossDistance`. Each section authors a
+virtual distance interval, spawn interval, group-size range, Row/Grid/Cluster
+pattern, spacing, lane center, and spawn depth. The prototype sections span
+distance 0–600, with increasing density and a boss trigger at distance 520
+(about 65 seconds at the default world speed).
 
-`EnemyController` owns runtime health and implements `ITargetable` and
-`IDamageable`. It registers while approaching, ignores damage after death, and
-unregisters immediately on death, contact, lateral passage, reset, or pooling. A
-brief transform-scale pulse communicates hits; death uses a short shrink/tilt before
-pool release. Neither path creates material instances, ragdolls, or rigidbodies.
+`ContinuousEnemyDirector` schedules mini-groups from
+`WorldScroller.DistanceTravelled`. It does **not** wait for previous groups to
+die. Groups overlap, and spawning continues through the boss-distance trigger.
+At the active cap, excess spawns are skipped; the scheduler still advances.
+The boss event fires once per run and resets with the director. It is a
+foundation event only: this correction does not spawn a Giant or implement boss
+mechanics, UI, victory, gates, or rewards.
 
-`EnemyMotor` applies one explicit movement model:
+## Enemy lifetime and movement
 
-`effective speed = WorldScroller.CurrentScrollSpeed + EnemyConfig.ApproachSpeed`
+`EnemyPool` prewarms 100 Rushers, reuses inactive enemies, and expands only to
+the configured cap. `EnemyController` registers with `TargetRegistry` while
+approaching and unregisters immediately on death, contact, passage, or reset.
+One hit triggers a brief shrink/tilt death response, then pool release. There
+are no ragdolls, physics bodies, or per-hit material instances.
 
-Enemies do not have `ScrollItem`, so world motion is never applied twice. Movement
-requires both enemy simulation and world scrolling to be enabled.
+`EnemyMotor` moves at `WorldScroller.CurrentScrollSpeed +
+EnemyConfig.ApproachSpeed`. Enemies have no `ScrollItem`, preventing double
+scrolling. Pausing world scrolling or enemy simulation stops movement.
 
-## EnemyPool
+## Target distribution and casualties
 
-`EnemyPool` prewarms 60 Rushers for the prototype, reuses inactive enemies, expands
-only when needed, and enforces the level's active-enemy cap of 100. One pool update
-ticks the compact active list; individual enemies do not perform scene searches.
-Health, feedback, wave ownership, target registration, and contact state reset on
-reuse. Spawned, killed, contacted, and removed events are UI-independent hooks for
-future audio, VFX, rewards, and analytics.
+`SquadWeaponSystem` builds one ordered cache of up to 100 nearby forward targets
+ten times per second. It assigns distinct unclaimed targets where available.
+Projectile commitments temporarily reserve targets; reservations clear when
+projectiles hit or expire, so missed targets become eligible again. Duplicate
+assignments are spread when shooters outnumber targets. This is deliberately
+lightweight for WebGL.
 
-## Authored wave data
+Contact is a constant-time horizontal bounds check at
+`SquadController.CombatContactZ`. An aligned Rusher applies one casualty and
+returns to the pool. A lateral miss passes behind and despawns safely. The
+explicit `ApplyCasualties` API may reduce visible soldiers to zero; non-combat
+`RemoveUnits` remains nonlethal. At zero, `SquadDefeated` fires once and
+`GameplayBootstrap` pauses world, enemies, weapons, and projectiles.
 
-`LevelConfig` owns serialized `EnemyWaveDefinition` entries and the active-enemy
-safety limit. Each wave defines virtual spawn distance, enemy config, count, Row,
-Grid, or Cluster pattern, row count, spacing, lane center, and spawn depth.
-`EnemyWaveDirector` orders entries by distance and schedules them from
-`WorldScroller.DistanceTravelled`; it does not use player Transform Z or random
-endless spawning.
+`ResetPrototypeRun` restores squad count, enemy pool, spawn schedule,
+boss-trigger state, projectiles, distance, and scrolling. No retry UI exists.
 
-The prototype sequence contains six waves across roughly 40 seconds: 5 weak, 10
-weak, 15 weak, 10 medium, a 25-enemy weak horde, and a final 40-enemy medium horde.
-A wave completes after every spawned member is killed, contacts the squad, or passes
-behind. World scrolling does not wait for completion.
+## Future moving world content
 
-## Target distribution
+The fixed-Z squad never runs down a stationary gate track. Future gates are
+world content that spawn ahead, move toward the squad, use horizontal position
+for selection, and recycle after passage. `WorldContentCarrier` provides the
+generic registered `ScrollItem` movement/pass/unregister path for pooled content;
+a gate director can schedule discrete events
+by the same virtual distance used by the enemy director. Gate content and
+continuous enemies can coexist without stopping combat.
 
-Enemies use the Phase 4 `TargetRegistry`. Ten times per second,
-`SquadWeaponSystem` builds one ordered cache of at most 32 nearest valid forward
-targets and assigns shooters round-robin. Fifty soldiers therefore spread fire over
-a horde without fifty independent sorts or scene queries.
-
-## Contact, casualties, and dodging
-
-Contact occurs when an enemy's leading edge reaches `SquadController.CombatContactZ`.
-A constant-time interval overlap compares the enemy radius and small padding with
-the squad's current world-space horizontal formation bounds. No per-soldier physics
-or collision scan is needed.
-
-An overlap applies configured casualties exactly once, makes the enemy non-targetable,
-and immediately returns it to the pool. A horizontal miss becomes non-targetable,
-continues behind the combat line, and returns to the pool without casualties. This
-makes lateral movement an actual defensive decision.
-
-`ApplyCasualties` is distinct from non-lethal `RemoveUnits`: it can remove every
-visible soldier. Remaining soldiers receive a newly calculated complete formation
-and recompact smoothly.
-
-## SquadDefeated and reset
-
-When the squad reaches zero, `SquadDefeated` fires once per run.
-`GameplayBootstrap` stops player movement, camera follow updates, world scrolling,
-enemy simulation, firing, and projectile advancement, then clears active
-projectiles. No final game-over UI is implemented.
-
-`ResetPrototypeRun` provides the future retry foundation: active enemies return to
-the pool, target/projectile state clears, the squad restores its configured starting
-count, world distance resets, wave scheduling restarts, and combat resumes. It is a
-runtime API only; Phase 5 does not add retry UI, rewards, currency, or persistence.
-
-## Future archetypes
-
-Heavy, shielded, fast, ranged, and boss enemies can use additional configs and
-specialized components while retaining the same pool, wave, target, damage, contact,
-casualty, event, and defeat contracts. Those behaviors are outside Phase 5.
+An illustrative timeline is combat at distance 0, moving gates near 35, 70,
+110, 150, and 200, then a Giant with escort enemies near 250. These are design
+examples, not implemented gate placements. The prototype's current boss trigger
+is at 520 to permit a 45–90-second density test.
 
 ## Setup
 
-Run **Tools > Project Gatefront > Setup Phase 5 Enemy Combat Prototype** to create
-or repair configs, level data, materials, the Rusher prefab, enemy pool/director,
-and gameplay-scene references. The command is idempotent and removes the old Phase 4
-dummy group from normal gameplay.
+**Tools > Project Gatefront > Setup Phase 5 Enemy Combat Prototype** repairs the
+one-hit Rusher config, materials, prefab, continuous section asset, pool,
+director, and gameplay-scene references. It is idempotent.

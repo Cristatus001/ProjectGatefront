@@ -2,6 +2,11 @@
 
 ## 0.5.0-dev
 
+- Changed normal enemies to one-hit kills.
+- Reworked enemy progression to continuous horde spawning.
+- Shifted difficulty from enemy HP to enemy density.
+- Added boss-distance / Giant encounter event foundation.
+- Prepared moving-world content flow for future gates.
 - Added approaching Rusher enemies.
 - Added pooled enemy system.
 - Added authored enemy waves.

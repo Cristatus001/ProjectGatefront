@@ -7,13 +7,15 @@ Current development stage: **PHASE 5 — Enemy Horde Combat Prototype**
 The current prototype uses a fixed squad combat zone with resolution-independent
 horizontal drag, a mostly fixed portrait camera, a moving battlefield, recycled
 track chunks, virtual level distance, pooled squad spawning, Compact plus four
-tactical formations, automatic squad shooting, and authored waves of pooled Rusher
-enemies. Surviving enemies can remove visible soldiers at the formation contact
+tactical formations, automatic squad shooting, and a continuous one-hit horde of
+pooled Rushers. Density-authored sections increase pressure as distance grows.
+Surviving enemies can remove visible soldiers at the formation contact
 line; lateral movement can dodge enemies, and losing every soldier stops combat in
 a lightweight defeat state. Fire is distributed across nearby horde targets rather
-than concentrated on one weak enemy. Advertising, analytics, portal SDK integration,
-gates, rewards, final enemy AI archetypes, results UI, and upgrade economy are not
-included.
+than concentrated on one enemy. A boss-distance event prepares a future Giant
+with supporting normal enemies. Future gates will move with the world toward the
+fixed-Z squad; gate effects are not yet implemented. Advertising, analytics,
+portal SDK integration, rewards, results UI, and upgrade economy are not included.
 
 ## Engine
 
@@ -93,9 +95,9 @@ future permanent and run-specific upgrades never mutate the configuration asset.
 
 ## Enemy horde combat prototype
 
-The normal gameplay scene uses distance-authored Row, Grid, and Cluster waves rather
-than Phase 4 target dummies. Weak and medium Rusher configs share one pooled enemy
-implementation. Each enemy approaches at the current world speed plus its own
+The normal gameplay scene continuously spawns one-hit Rushers in distance-authored
+Row, Grid, and Cluster mini-groups rather than Phase 4 target dummies or separated
+weak/medium waves. Each enemy approaches at the current world speed plus its own
 configured speed, registers with the combat target registry while alive, and returns
 to its pool after death, squad contact, or a safe lateral pass.
 

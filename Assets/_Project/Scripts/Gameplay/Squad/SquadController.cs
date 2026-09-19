@@ -82,6 +82,10 @@ namespace ProjectGatefront.Gameplay.Squad
             ? 0
             : Mathf.Clamp(config.StartingUnitCount, 1, config.MaxSquadSize);
 
+        public int ConfiguredMaximumUnitCount => config == null
+            ? 0
+            : Mathf.Max(1, config.MaxSquadSize);
+
         public FormationType CurrentFormation => currentFormation;
 
         public void Configure(

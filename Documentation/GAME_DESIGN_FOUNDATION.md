@@ -6,16 +6,12 @@ Project Gatefront is a fast, accessible 3D action-runner where the player comman
 
 ## Core loop
 
-RUN
-→ MAKE GATE DECISIONS
-→ GROW / MODIFY SQUAD
-→ COLLECT OR UPGRADE WEAPONS
-→ FIGHT ENEMY GROUPS
-→ MAKE TACTICAL DECISIONS
-→ DEFEAT FINAL ENCOUNTER
-→ EARN RESOURCES
-→ UPGRADE
-→ NEXT MISSION
+CONTINUOUS ONE-HIT HORDE
+→ MOVING GATE DECISIONS
+→ GROWING FIREPOWER AND ENEMY DENSITY
+→ GIANT WITH NORMAL-ENEMY ESCORT
+→ VICTORY OR FAILURE
+→ FUTURE RESOURCES / UPGRADES / RETRY
 
 ## Core presentation and interaction
 
@@ -31,7 +27,8 @@ The baseline squad combat interaction is automatic shooting. Every visible soldi
 contributes firepower from the shared equipped weapon; the player remains responsible
 for horizontal positioning and later tactical choices rather than pressing a fire
 button. Phase 4 uses simple damageable test targets, not real enemy AI.
-Phase 5 replaces normal-scene test targets with pooled straight-line Rusher hordes;
+Phase 5 replaces normal-scene test targets with pooled, continuously spawning
+one-hit Rusher hordes;
 advanced enemy decision-making remains future work.
 
 Permanent weapon progression will happen between attempts and may improve damage,
@@ -47,6 +44,13 @@ Repeated casualties can wipe the visible squad and end the combat attempt. This
 pressure is the foundation for future permanent weapon upgrades that let later
 attempts progress deeper, while future gates and pickups provide temporary tactical
 changes during a run.
+
+Future gates must spawn ahead and travel toward the fixed-Z squad with the world;
+they will not sit on a stationary long track. Their discrete distance markers
+can coexist with continuous enemy-pressure sections. The current boss-distance
+event reserves the eventual Giant entrance while normal enemies continue around it.
+Normal enemies test fire rate, coverage, and army size; the Giant will test
+sustained boss DPS and later weapon progression.
 
 The intended future progression loop is:
 

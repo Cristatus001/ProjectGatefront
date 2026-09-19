@@ -17,6 +17,8 @@ namespace ProjectGatefront.Gameplay.Weapons
             new List<Projectile>(256);
         private TargetRegistry registry;
 
+        public event Action<Projectile> ProjectileReleased;
+
         public bool IsInitialized { get; private set; }
 
         public bool SimulationEnabled { get; private set; }
@@ -107,6 +109,7 @@ namespace ProjectGatefront.Gameplay.Weapons
             activeProjectiles[releaseIndex] = lastProjectile;
             lastProjectile.PoolIndex = releaseIndex;
             activeProjectiles.RemoveAt(lastIndex);
+            ProjectileReleased?.Invoke(projectile);
             projectile.ReturnToPoolState();
             inactiveProjectiles.Push(projectile);
         }

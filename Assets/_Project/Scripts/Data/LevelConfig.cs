@@ -9,9 +9,11 @@ namespace ProjectGatefront.Data
         [SerializeField, Min(1)] private int missionNumber = 1;
         [SerializeField] private string sceneName = "02_Gameplay";
         [SerializeField] private BossConfig finalBoss;
-        [SerializeField] private List<EnemyWaveDefinition> enemyWaves =
-            new List<EnemyWaveDefinition>();
+        [SerializeField] private EnemyConfig normalEnemy;
+        [SerializeField] private List<CombatSectionDefinition> combatSections =
+            new List<CombatSectionDefinition>();
         [SerializeField, Range(1, 200)] private int activeEnemyLimit = 100;
+        [SerializeField, Min(0f)] private float bossDistance = 520f;
 
         public int MissionNumber => missionNumber;
 
@@ -19,27 +21,35 @@ namespace ProjectGatefront.Data
 
         public BossConfig FinalBoss => finalBoss;
 
-        public IReadOnlyList<EnemyWaveDefinition> EnemyWaves => enemyWaves;
+        public EnemyConfig NormalEnemy => normalEnemy;
+
+        public IReadOnlyList<CombatSectionDefinition> CombatSections => combatSections;
 
         public int ActiveEnemyLimit => Mathf.Clamp(activeEnemyLimit, 1, 200);
 
-        public void ConfigureEnemyWaves(
-            IList<EnemyWaveDefinition> waves,
-            int maximumActiveEnemies)
+        public float BossDistance => Mathf.Max(0f, bossDistance);
+
+        public void ConfigureCombat(
+            EnemyConfig enemy,
+            IList<CombatSectionDefinition> sections,
+            int maximumActiveEnemies,
+            float giantTriggerDistance)
         {
-            enemyWaves.Clear();
-            if (waves != null)
+            normalEnemy = enemy;
+            combatSections.Clear();
+            if (sections != null)
             {
-                for (int index = 0; index < waves.Count; index++)
+                for (int index = 0; index < sections.Count; index++)
                 {
-                    if (waves[index] != null)
+                    if (sections[index] != null)
                     {
-                        enemyWaves.Add(waves[index]);
+                        combatSections.Add(sections[index]);
                     }
                 }
             }
 
             activeEnemyLimit = Mathf.Clamp(maximumActiveEnemies, 1, 200);
+            bossDistance = Mathf.Max(0f, giantTriggerDistance);
         }
     }
 }

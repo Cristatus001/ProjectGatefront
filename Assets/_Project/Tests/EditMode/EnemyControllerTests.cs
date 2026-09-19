@@ -73,7 +73,7 @@ namespace ProjectGatefront.Tests.EditMode
         }
 
         [Test]
-        public void Damage_KillsOnceUnregistersAndReuseRestoresHealth()
+        public void OneValidHit_KillsOnceUnregistersAndReuseRestoresOneHitState()
         {
             int killedCount = 0;
             pool.EnemyKilled += _ => killedCount++;
@@ -84,13 +84,11 @@ namespace ProjectGatefront.Tests.EditMode
             int capacity = pool.TotalCreated;
 
             Assert.That(registry.ActiveTargetCount, Is.EqualTo(1));
-            float initialHealth = enemy.CurrentHealth;
+            Assert.That(enemy.CurrentHealth, Is.EqualTo(1f));
             DamageResult firstHit = enemy.ApplyDamage(1f);
             Assert.That(firstHit.AppliedDamage, Is.EqualTo(1f));
-            Assert.That(enemy.CurrentHealth, Is.EqualTo(initialHealth - 1f));
-
-            DamageResult lethal = enemy.ApplyDamage(initialHealth + 1f);
-            Assert.That(lethal.WasKilled, Is.True);
+            Assert.That(firstHit.WasKilled, Is.True);
+            Assert.That(enemy.CurrentHealth, Is.Zero);
             Assert.That(killedCount, Is.EqualTo(1));
             Assert.That(registry.ActiveTargetCount, Is.Zero);
             DamageResult repeated = enemy.ApplyDamage(10f);
@@ -104,7 +102,7 @@ namespace ProjectGatefront.Tests.EditMode
                 new Vector3(0f, 0f, 20f),
                 1);
             Assert.That(reused, Is.SameAs(enemy));
-            Assert.That(reused.CurrentHealth, Is.EqualTo(enemyConfig.MaximumHealth));
+            Assert.That(reused.CurrentHealth, Is.EqualTo(1f));
             Assert.That(registry.ActiveTargetCount, Is.EqualTo(1));
             Assert.That(pool.TotalCreated, Is.EqualTo(capacity));
         }

@@ -5,9 +5,9 @@ namespace ProjectGatefront.Data
     [CreateAssetMenu(menuName = "Project Gatefront/Config/Enemy", fileName = "EnemyConfig")]
     public sealed class EnemyConfig : GameConfig
     {
-        [SerializeField] private string enemyId = "rusher_weak";
-        [SerializeField] private string displayName = "Weak Rusher";
-        [SerializeField, Min(1f)] private float maximumHealth = 64f;
+        [SerializeField] private string enemyId = "rusher";
+        [SerializeField] private string displayName = "Rusher";
+        [SerializeField, Min(1f)] private float maximumHealth = 1f;
         [SerializeField, Min(0f)] private float approachSpeed = 2f;
         [SerializeField, Min(1)] private int casualtiesOnContact = 1;
         [SerializeField, Min(0.05f)] private float targetRadius = 0.55f;

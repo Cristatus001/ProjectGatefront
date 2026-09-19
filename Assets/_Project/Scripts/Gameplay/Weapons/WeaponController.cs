@@ -25,6 +25,8 @@ namespace ProjectGatefront.Gameplay.Weapons
         private int shotSequence;
         private bool firingEnabled;
 
+        public event Action<ITargetable, Projectile> ProjectileCommitted;
+
         public bool IsInitialized { get; private set; }
 
         public int ShotCount { get; private set; }
@@ -153,7 +155,11 @@ namespace ProjectGatefront.Gameplay.Weapons
                     stats.SpreadDegrees);
                 Vector3 direction = Quaternion.AngleAxis(spreadAngle, Vector3.up)
                     * baseDirection.normalized;
-                projectilePool.Acquire(firePoint.position, direction, stats);
+                Projectile projectile = projectilePool.Acquire(
+                    firePoint.position,
+                    direction,
+                    stats);
+                ProjectileCommitted?.Invoke(target, projectile);
                 ProjectileLaunchCount++;
             }
 
