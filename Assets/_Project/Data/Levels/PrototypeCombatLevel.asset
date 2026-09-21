@@ -75,3 +75,59 @@ MonoBehaviour:
     spawnDepth: 34
   activeEnemyLimit: 100
   bossDistance: 520
+  gateEncounters:
+  - distance: 60
+    layout: 0
+    shootableStartingValue: -10
+    shootableMinimumValue: -10
+    shootableMaximumValue: 30
+    divideAmount: 2
+    enemyDensityMultiplier: 0.65
+    readabilityBeforeDistance: 18
+    readabilityAfterDistance: 8
+    spawnDepth: 34
+    engagementRange: 26
+  - distance: 140
+    layout: 0
+    shootableStartingValue: -20
+    shootableMinimumValue: -20
+    shootableMaximumValue: 35
+    divideAmount: 2
+    enemyDensityMultiplier: 0.6
+    readabilityBeforeDistance: 18
+    readabilityAfterDistance: 8
+    spawnDepth: 34
+    engagementRange: 26
+  - distance: 230
+    layout: 1
+    shootableStartingValue: -30
+    shootableMinimumValue: -30
+    shootableMaximumValue: 40
+    divideAmount: 2
+    enemyDensityMultiplier: 0.55
+    readabilityBeforeDistance: 18
+    readabilityAfterDistance: 8
+    spawnDepth: 34
+    engagementRange: 26
+  - distance: 330
+    layout: 0
+    shootableStartingValue: -40
+    shootableMinimumValue: -40
+    shootableMaximumValue: 45
+    divideAmount: 2
+    enemyDensityMultiplier: 0.5
+    readabilityBeforeDistance: 18
+    readabilityAfterDistance: 8
+    spawnDepth: 34
+    engagementRange: 26
+  - distance: 430
+    layout: 1
+    shootableStartingValue: -50
+    shootableMinimumValue: -50
+    shootableMaximumValue: 50
+    divideAmount: 2
+    enemyDensityMultiplier: 0.45
+    readabilityBeforeDistance: 18
+    readabilityAfterDistance: 8
+    spawnDepth: 34
+    engagementRange: 26

@@ -36,6 +36,11 @@ foundation, not final balance. The modifier path already supports damage, fire r
 additional projectiles, and penetration. A later equipment system can swap the
 shared visual/config for all soldiers through `SquadWeaponSystem.EquipWeapon`.
 
+Shootable gates gain exactly one value per projectile impact, regardless of weapon
+damage. Higher fire rate therefore kills more normal enemies and converts negative
+gates faster. Multiple projectiles per shot can add multiple gate points if each
+lands; the gate consumes each hit and does not use one-hit enemy reservations.
+
 ## WeaponController and automatic firing
 
 Each visible soldier's `WeaponController` references its existing `WeaponMount` and

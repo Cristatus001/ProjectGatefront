@@ -11,6 +11,13 @@ namespace ProjectGatefront.Tests
     public sealed class SquadWeaponSystemTests
     {
         [Test]
+        public void CriticalEnemyWindow_IsAheadOfGatePriority()
+        {
+            Assert.That(SquadWeaponSystem.IsCriticallyClose(5.99f, 0f), Is.True);
+            Assert.That(SquadWeaponSystem.IsCriticallyClose(6.01f, 0f), Is.False);
+        }
+
+        [Test]
         public void EveryActiveUnit_IsAShooterAtOneFiveTwentyAndFifty()
         {
             var root = new GameObject("SquadWeaponSystemTest");

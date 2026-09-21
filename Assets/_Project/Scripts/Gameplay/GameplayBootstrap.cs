@@ -1,6 +1,7 @@
 using ProjectGatefront.Core;
 using ProjectGatefront.Data;
 using ProjectGatefront.Gameplay.Enemies;
+using ProjectGatefront.Gameplay.Gates;
 using ProjectGatefront.Gameplay.Player;
 using ProjectGatefront.Gameplay.Squad;
 using ProjectGatefront.Gameplay.Weapons;
@@ -22,6 +23,7 @@ namespace ProjectGatefront.Gameplay
         [SerializeField] private WorldScroller worldScroller;
         [SerializeField] private SquadWeaponSystem squadWeaponSystem;
         [SerializeField] private ContinuousEnemyDirector continuousEnemyDirector;
+        [SerializeField] private GateDirector gateDirector;
         [SerializeField] private bool movementEnabledOnStart = true;
 
         public bool IsInitialized { get; private set; }
@@ -71,6 +73,11 @@ namespace ProjectGatefront.Gameplay
             continuousEnemyDirector = director;
         }
 
+        public void ConfigureGateCombat(GateDirector director)
+        {
+            gateDirector = director;
+        }
+
         public void Initialize()
         {
             if (IsInitialized)
@@ -87,7 +94,8 @@ namespace ProjectGatefront.Gameplay
                 || gameBalanceConfig == null
                 || worldScroller == null
                 || squadWeaponSystem == null
-                || continuousEnemyDirector == null)
+                || continuousEnemyDirector == null
+                || gateDirector == null)
             {
                 GameLog.Error(
                     "GameplayBootstrap is missing required scene references.",
@@ -103,6 +111,7 @@ namespace ProjectGatefront.Gameplay
             worldScroller.Initialize();
             squadWeaponSystem.Initialize();
             continuousEnemyDirector.Initialize();
+            gateDirector.Initialize();
             SetGameplaySystemsEnabled(movementEnabledOnStart);
             IsInitialized = true;
         }
@@ -126,6 +135,7 @@ namespace ProjectGatefront.Gameplay
 
             SetGameplaySystemsEnabled(false);
             continuousEnemyDirector.ResetCombat();
+            gateDirector.ResetGates();
             squadController.ResetSquad();
             worldScroller.ResetScroll();
             squadWeaponSystem.ResetCombat();
@@ -140,6 +150,7 @@ namespace ProjectGatefront.Gameplay
             worldScroller.SetScrollingEnabled(enabled);
             squadWeaponSystem.SetCombatEnabled(enabled);
             continuousEnemyDirector.SetSimulationEnabled(enabled);
+            gateDirector.SetSimulationEnabled(enabled);
         }
 
         private void HandleSquadDefeated()

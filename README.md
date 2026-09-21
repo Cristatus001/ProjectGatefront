@@ -2,7 +2,7 @@
 
 Project Gatefront is an original, commercial-quality 3D action-runner in which the player commands and develops a tactical squad through compact battlefield missions. The project is designed first for browser delivery while keeping runtime systems independent from any single portal SDK.
 
-Current development stage: **PHASE 5 — Enemy Horde Combat Prototype**
+Current development stage: **PHASE 6 — Shootable Moving Gates**
 
 The current prototype uses a fixed squad combat zone with resolution-independent
 horizontal drag, a mostly fixed portrait camera, a moving battlefield, recycled
@@ -12,9 +12,10 @@ pooled Rushers. Density-authored sections increase pressure as distance grows.
 Surviving enemies can remove visible soldiers at the formation contact
 line; lateral movement can dodge enemies, and losing every soldier stops combat in
 a lightweight defeat state. Fire is distributed across nearby horde targets rather
-than concentrated on one enemy. A boss-distance event prepares a future Giant
-with supporting normal enemies. Future gates will move with the world toward the
-fixed-Z squad; gate effects are not yet implemented. Advertising, analytics,
+than concentrated on one enemy. Negative shootable gates now move with the world:
+each projectile charges one point, potentially converting a penalty to a bonus.
+Wide mandatory gates alternate with shootable-versus-divide choices while enemies
+keep spawning. A boss-distance event prepares a future Giant. Advertising, analytics,
 portal SDK integration, rewards, results UI, and upgrade economy are not included.
 
 ## Engine
@@ -53,7 +54,7 @@ Third-party packages must remain outside Assets/_Project.
 - Assets/_Project/Scenes/02_Gameplay.unity
 
 The boot scene initializes persistent game-level services. The main menu remains
-an empty foundation; the gameplay scene contains the Phase 5 enemy-horde combat
+an empty foundation; the gameplay scene contains the Phase 6 shootable-gate combat
 prototype built on the fixed-squad moving-world presentation.
 
 ## Moving-world gameplay prototype
@@ -107,6 +108,17 @@ those bounds can pass behind without damage. Combat casualties may reduce the sq
 to zero, which pauses the world, enemies, weapons, and projectiles without adding a
 final results screen. The Phase 5 setup can be repaired safely with
 **Tools > Project Gatefront > Setup Phase 5 Enemy Combat Prototype**.
+
+## Shootable moving gates
+
+Five data-authored encounters appear at virtual distances 60–430. Each valid
+projectile charges a negative gate by exactly one, through zero into positive
+values. Wide single gates are mandatory; paired encounters offer a left shootable
+gate or a static right ÷2 gate. The chosen value changes squad size at the fixed
+selection plane, clamped from one to the configured maximum. Enemies keep spawning
+at reduced density around gates. Run **Tools > Project Gatefront > Setup Phase 6
+Shootable Gates** to repair the scene and prefab. See
+[Gate system](Documentation/GATE_SYSTEM.md).
 
 ## Branch strategy
 

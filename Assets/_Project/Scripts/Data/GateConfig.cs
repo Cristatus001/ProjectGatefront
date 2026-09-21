@@ -11,7 +11,9 @@ namespace ProjectGatefront.Data
         Formation,
         SpecialistChance,
         Armor,
-        RiskReward
+        RiskReward,
+        ShootableAdditive,
+        Divide
     }
 
     [CreateAssetMenu(menuName = "Project Gatefront/Config/Gate", fileName = "GateConfig")]

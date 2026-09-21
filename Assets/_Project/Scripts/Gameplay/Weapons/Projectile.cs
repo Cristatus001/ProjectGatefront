@@ -1,4 +1,5 @@
 using ProjectGatefront.Gameplay.Combat;
+using ProjectGatefront.Gameplay.Gates;
 using UnityEngine;
 
 namespace ProjectGatefront.Gameplay.Weapons
@@ -74,6 +75,13 @@ namespace ProjectGatefront.Gameplay.Weapons
                     out ITargetable hitTarget))
             {
                 lastHitTarget = hitTarget;
+                if (hitTarget is IShootableGate gate)
+                {
+                    gate.ApplyProjectileHit();
+                    owner.Release(this);
+                    return;
+                }
+
                 if (hitTarget is IDamageable damageable)
                 {
                     damageable.ApplyDamage(damage);

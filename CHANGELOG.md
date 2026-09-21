@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0-dev
+
+- Added shootable moving gates and negative-to-positive value conversion.
+- Added exactly one gate charge per valid projectile impact.
+- Added large mandatory gates and shootable-versus-divide choices.
+- Added moving-world gate timeline and gate target-priority integration.
+- Added gate reset, value/resolution events, and tests.
+
 ## 0.5.0-dev
 
 - Changed normal enemies to one-hit kills.

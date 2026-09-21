@@ -14,6 +14,8 @@ namespace ProjectGatefront.Data
             new List<CombatSectionDefinition>();
         [SerializeField, Range(1, 200)] private int activeEnemyLimit = 100;
         [SerializeField, Min(0f)] private float bossDistance = 520f;
+        [SerializeField] private List<GateEncounterDefinition> gateEncounters =
+            new List<GateEncounterDefinition>();
 
         public int MissionNumber => missionNumber;
 
@@ -28,6 +30,8 @@ namespace ProjectGatefront.Data
         public int ActiveEnemyLimit => Mathf.Clamp(activeEnemyLimit, 1, 200);
 
         public float BossDistance => Mathf.Max(0f, bossDistance);
+
+        public IReadOnlyList<GateEncounterDefinition> GateEncounters => gateEncounters;
 
         public void ConfigureCombat(
             EnemyConfig enemy,
@@ -50,6 +54,23 @@ namespace ProjectGatefront.Data
 
             activeEnemyLimit = Mathf.Clamp(maximumActiveEnemies, 1, 200);
             bossDistance = Mathf.Max(0f, giantTriggerDistance);
+        }
+
+        public void ConfigureGateEncounters(IList<GateEncounterDefinition> encounters)
+        {
+            gateEncounters.Clear();
+            if (encounters == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < encounters.Count; index++)
+            {
+                if (encounters[index] != null)
+                {
+                    gateEncounters.Add(encounters[index]);
+                }
+            }
         }
     }
 }

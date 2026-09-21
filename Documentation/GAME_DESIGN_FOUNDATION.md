@@ -7,8 +7,9 @@ Project Gatefront is a fast, accessible 3D action-runner where the player comman
 ## Core loop
 
 CONTINUOUS ONE-HIT HORDE
-→ MOVING GATE DECISIONS
-→ GROWING FIREPOWER AND ENEMY DENSITY
+→ SHOOT NEGATIVE MOVING GATE TOWARD POSITIVE
+→ CROSS GATE TO CHANGE ARMY SIZE
+→ INCREASING HORDE AND HARDER SHOOTABLE GATE
 → GIANT WITH NORMAL-ENEMY ESCORT
 → VICTORY OR FAILURE
 → FUTURE RESOURCES / UPGRADES / RETRY
@@ -32,10 +33,10 @@ one-hit Rusher hordes;
 advanced enemy decision-making remains future work.
 
 Permanent weapon progression will happen between attempts and may improve damage,
-fire rate, projectile count, penetration, or weapon presentation. Future gates and
-pickups may grant run-specific changes. Both forms of progression will resolve into
+fire rate, projectile count, penetration, or weapon presentation. Future pickups
+may grant run-specific changes. Both forms of progression will resolve into
 runtime weapon stats without modifying base weapon configuration assets. Economy,
-upgrade menus, gates, and pickups remain future work.
+upgrade menus, and pickups remain future work; shootable squad-size gates are live.
 
 Enemy hordes now advance toward the fixed squad while every visible soldier fires
 automatically. Enemies that survive to the formation's contact line remove soldiers;
@@ -45,9 +46,9 @@ pressure is the foundation for future permanent weapon upgrades that let later
 attempts progress deeper, while future gates and pickups provide temporary tactical
 changes during a run.
 
-Future gates must spawn ahead and travel toward the fixed-Z squad with the world;
-they will not sit on a stationary long track. Their discrete distance markers
-can coexist with continuous enemy-pressure sections. The current boss-distance
+Phase 6 gates spawn ahead and travel toward the fixed-Z squad with the world;
+they do not sit on a stationary long track. Their discrete distance markers
+coexist with continuous enemy-pressure sections. The current boss-distance
 event reserves the eventual Giant entrance while normal enemies continue around it.
 Normal enemies test fire rate, coverage, and army size; the Giant will test
 sustained boss DPS and later weapon progression.

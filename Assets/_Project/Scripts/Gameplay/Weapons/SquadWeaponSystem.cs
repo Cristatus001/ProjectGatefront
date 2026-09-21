@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using ProjectGatefront.Data;
 using ProjectGatefront.Gameplay.Combat;
+using ProjectGatefront.Gameplay.Gates;
 using ProjectGatefront.Gameplay.Squad;
 using ProjectGatefront.Gameplay.World;
 using UnityEngine;
@@ -12,6 +13,7 @@ namespace ProjectGatefront.Gameplay.Weapons
     [DisallowMultipleComponent]
     public sealed class SquadWeaponSystem : MonoBehaviour
     {
+        private const float CriticalEnemyDistance = 6f;
         [SerializeField] private WeaponConfig equippedWeapon;
         [SerializeField] private SquadController squadController;
         [SerializeField] private TargetRegistry targetRegistry;
@@ -20,7 +22,7 @@ namespace ProjectGatefront.Gameplay.Weapons
         [SerializeField] private List<CombatTargetDummy> testTargets =
             new List<CombatTargetDummy>();
         [SerializeField, Range(0.05f, 0.5f)] private float targetRefreshInterval = 0.1f;
-        [SerializeField, Range(1, 100)] private int maximumDistributedTargets = 100;
+        [SerializeField, Range(1, 128)] private int maximumDistributedTargets = 128;
 
         [Header("Development")]
         [SerializeField] private bool debugOverlayEnabled = true;
@@ -84,6 +86,11 @@ namespace ProjectGatefront.Gameplay.Weapons
         public ProjectilePool ProjectilePool => projectilePool;
 
         public TargetRegistry TargetRegistry => targetRegistry;
+
+        public static bool IsCriticallyClose(float targetZ, float squadContactZ)
+        {
+            return targetZ - squadContactZ <= CriticalEnemyDistance;
+        }
 
         private void Update()
         {
@@ -350,6 +357,8 @@ namespace ProjectGatefront.Gameplay.Weapons
 
         private ITargetable FindPreferredTarget()
         {
+            ITargetable emergency = null;
+            IShootableGate alignedGate = null;
             ITargetable selected = null;
             int bestScore = int.MaxValue;
             for (int index = 0; index < targetCandidates.Count; index++)
@@ -360,9 +369,28 @@ namespace ProjectGatefront.Gameplay.Weapons
                     continue;
                 }
 
+                if (candidate is IShootableGate gate)
+                {
+                    if (alignedGate == null && gate.CanReceiveFire(
+                            squadController.transform.position.x,
+                            squadController.CombatContactZ))
+                    {
+                        alignedGate = gate;
+                    }
+
+                    continue;
+                }
+
                 assignmentsThisPass.TryGetValue(candidate, out int assigned);
                 targetReservations.TryGetValue(candidate, out int reserved);
                 int score = (reserved > 0 ? 1000 : 0) + assigned;
+                if (IsCriticallyClose(candidate.AimPosition.z,
+                        squadController.CombatContactZ)
+                    && reserved == 0 && assigned == 0 && emergency == null)
+                {
+                    emergency = candidate;
+                }
+
                 if (score < bestScore)
                 {
                     bestScore = score;
@@ -370,7 +398,7 @@ namespace ProjectGatefront.Gameplay.Weapons
                 }
             }
 
-            return selected;
+            return emergency ?? (ITargetable)alignedGate ?? selected;
         }
 
         private void HandleProjectileCommitted(
@@ -378,6 +406,11 @@ namespace ProjectGatefront.Gameplay.Weapons
             Projectile projectile)
         {
             if (target == null || projectile == null)
+            {
+                return;
+            }
+
+            if (target is IShootableGate)
             {
                 return;
             }

@@ -30,6 +30,7 @@ namespace ProjectGatefront.Gameplay.Enemies
         private float nextSpawnDistance;
         private int scheduledGroupCount;
         private bool spawnSchedulingEnabled = true;
+        private float spawnIntervalMultiplier = 1f;
 
         public event Action<int, int> GroupSpawned;
         public event Action BossSpawnRequested;
@@ -41,6 +42,7 @@ namespace ProjectGatefront.Gameplay.Enemies
         public int ScheduledGroupCount => scheduledGroupCount;
         public int CurrentSectionNumber { get; private set; }
         public float NextSpawnDistance => nextSpawnDistance;
+        public float SpawnIntervalMultiplier => spawnIntervalMultiplier;
         public int ActiveEnemyCount => enemyPool == null
             ? 0
             : enemyPool.ActiveEnemyCount;
@@ -170,7 +172,7 @@ namespace ProjectGatefront.Gameplay.Enemies
                 scheduledGroupCount++;
                 nextSpawnDistance = ContinuousSpawnMath.NextSpawnDistance(
                     nextSpawnDistance,
-                    worldScroller.CurrentScrollSpeed,
+                    worldScroller.CurrentScrollSpeed * spawnIntervalMultiplier,
                     section);
                 groupsProcessed++;
             }
@@ -190,6 +192,14 @@ namespace ProjectGatefront.Gameplay.Enemies
             spawnSchedulingEnabled = enabled;
         }
 
+        public void SetSpawnIntervalMultiplier(float multiplier)
+        {
+            spawnIntervalMultiplier = float.IsNaN(multiplier)
+                || float.IsInfinity(multiplier)
+                ? 1f
+                : Mathf.Clamp(multiplier, 1f, 10f);
+        }
+
         public void ResetCombat()
         {
             if (!IsInitialized)
@@ -202,6 +212,7 @@ namespace ProjectGatefront.Gameplay.Enemies
             CurrentSectionNumber = 0;
             BossTriggerReached = false;
             spawnSchedulingEnabled = true;
+            spawnIntervalMultiplier = 1f;
             nextSpawnDistance = orderedSections.Count > 0
                 ? orderedSections[0].StartDistance
                 : float.PositiveInfinity;
