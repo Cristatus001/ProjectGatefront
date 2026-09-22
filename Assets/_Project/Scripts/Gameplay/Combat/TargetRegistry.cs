@@ -7,6 +7,8 @@ namespace ProjectGatefront.Gameplay.Combat
     [DisallowMultipleComponent]
     public sealed class TargetRegistry : MonoBehaviour
     {
+        // At nearly coincident surfaces, a combat threat visually shields a gate.
+        private const float HitTieEpsilonWorldUnits = 0.01f;
         private readonly List<ITargetable> targets = new List<ITargetable>(32);
 
         public int ActiveTargetCount => targets.Count;
@@ -147,6 +149,10 @@ namespace ProjectGatefront.Gameplay.Combat
         {
             hitTarget = null;
             float closestNormalizedDistance = float.PositiveInfinity;
+            float segmentLength = Vector3.Distance(segmentStart, segmentEnd);
+            float normalizedTieEpsilon = segmentLength <= 0.000001f
+                ? 0f
+                : HitTieEpsilonWorldUnits / segmentLength;
             for (int index = targets.Count - 1; index >= 0; index--)
             {
                 ITargetable candidate = targets[index];
@@ -161,15 +167,35 @@ namespace ProjectGatefront.Gameplay.Combat
                     continue;
                 }
 
-                float combinedRadius = Mathf.Max(0f, projectileRadius)
-                    + Mathf.Max(0f, candidate.TargetRadius);
-                if (TargetingMath.SegmentIntersectsSphere(
+                bool intersects;
+                float normalizedDistance;
+                if (candidate is IProjectileHitVolume customVolume)
+                {
+                    intersects = customVolume.TryGetProjectileIntersection(
+                        segmentStart,
+                        segmentEnd,
+                        projectileRadius,
+                        out normalizedDistance);
+                }
+                else
+                {
+                    float combinedRadius = Mathf.Max(0f, projectileRadius)
+                        + Mathf.Max(0f, candidate.TargetRadius);
+                    intersects = TargetingMath.SegmentIntersectsSphere(
                         segmentStart,
                         segmentEnd,
                         candidate.AimPosition,
                         combinedRadius,
-                        out float normalizedDistance)
-                    && normalizedDistance < closestNormalizedDistance)
+                        out normalizedDistance);
+                }
+
+                bool isCloser = normalizedDistance
+                    < closestNormalizedDistance - normalizedTieEpsilon;
+                bool winsThreatTie = Mathf.Abs(normalizedDistance
+                        - closestNormalizedDistance) <= normalizedTieEpsilon
+                    && candidate is IDamageable
+                    && hitTarget is ProjectGatefront.Gameplay.Gates.IShootableGate;
+                if (intersects && (isCloser || winsThreatTie))
                 {
                     closestNormalizedDistance = normalizedDistance;
                     hitTarget = candidate;

@@ -80,6 +80,15 @@ prototype projectile is kinematic: it advances with `deltaTime` and performs a
 segment-versus-target-sphere query between its previous and next positions to avoid
 fast-projectile tunneling. It returns to the pool on impact or expiry.
 
+Each sweep compares physical entry distances for all registered targets and resolves
+only the nearest valid intersection. Shootable gates provide a thin panel volume;
+normal enemies use their target sphere. Foreground enemies therefore shield a gate,
+including when they move into a projectile's path after launch. An enemy outside
+that projectile corridor does not block the gate. Near-equal enemy/gate surfaces
+use a documented 0.01-world-unit enemy-first tie break. The Prototype Rifle stops
+on its first collision; future penetration may deliberately continue from that
+ordered hit.
+
 No projectile uses a Rigidbody, per-frame `GetComponent`, scene search, or routine
 `Instantiate`/`Destroy` cycle.
 

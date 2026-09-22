@@ -38,19 +38,104 @@ namespace ProjectGatefront.Gameplay.Combat
         {
             Vector3 segment = segmentEnd - segmentStart;
             float lengthSquared = segment.sqrMagnitude;
+            float safeRadius = Mathf.Max(0f, sphereRadius);
             if (lengthSquared <= 0.000001f)
             {
                 normalizedDistance = 0f;
                 return Vector3.SqrMagnitude(sphereCenter - segmentStart)
-                    <= sphereRadius * sphereRadius;
+                    <= safeRadius * safeRadius;
             }
 
-            normalizedDistance = Mathf.Clamp01(
-                Vector3.Dot(sphereCenter - segmentStart, segment)
-                / lengthSquared);
-            Vector3 closestPoint = segmentStart + (segment * normalizedDistance);
-            return Vector3.SqrMagnitude(sphereCenter - closestPoint)
-                <= sphereRadius * sphereRadius;
+            Vector3 fromCenter = segmentStart - sphereCenter;
+            float c = Vector3.Dot(fromCenter, fromCenter)
+                - (safeRadius * safeRadius);
+            if (c <= 0f)
+            {
+                normalizedDistance = 0f;
+                return true;
+            }
+
+            float b = 2f * Vector3.Dot(fromCenter, segment);
+            float discriminant = (b * b) - (4f * lengthSquared * c);
+            if (discriminant < 0f)
+            {
+                normalizedDistance = 0f;
+                return false;
+            }
+
+            normalizedDistance = (-b - Mathf.Sqrt(discriminant))
+                / (2f * lengthSquared);
+            return normalizedDistance >= 0f && normalizedDistance <= 1f;
+        }
+
+        public static bool SegmentIntersectsAabb(
+            Vector3 segmentStart,
+            Vector3 segmentEnd,
+            Vector3 boundsCenter,
+            Vector3 boundsExtents,
+            out float normalizedDistance)
+        {
+            Vector3 minimum = boundsCenter - boundsExtents;
+            Vector3 maximum = boundsCenter + boundsExtents;
+            Vector3 direction = segmentEnd - segmentStart;
+            float entry = 0f;
+            float exit = 1f;
+            if (!ClipAxis(segmentStart.x, direction.x, minimum.x, maximum.x,
+                    ref entry, ref exit)
+                || !ClipAxis(segmentStart.y, direction.y, minimum.y, maximum.y,
+                    ref entry, ref exit)
+                || !ClipAxis(segmentStart.z, direction.z, minimum.z, maximum.z,
+                    ref entry, ref exit))
+            {
+                normalizedDistance = 0f;
+                return false;
+            }
+
+            normalizedDistance = entry;
+            return true;
+        }
+
+        public static bool IsTargetInProjectileCorridor(
+            Vector3 origin,
+            Vector3 destination,
+            Vector3 targetPosition,
+            float combinedRadius,
+            out float normalizedDistance)
+        {
+            normalizedDistance = 0f;
+            return targetPosition.z > origin.z
+                && targetPosition.z < destination.z
+                && SegmentIntersectsSphere(origin, destination, targetPosition,
+                    combinedRadius, out normalizedDistance)
+                && normalizedDistance < 1f;
+        }
+
+        private static bool ClipAxis(
+            float origin,
+            float direction,
+            float minimum,
+            float maximum,
+            ref float entry,
+            ref float exit)
+        {
+            if (Mathf.Abs(direction) <= 0.000001f)
+            {
+                return origin >= minimum && origin <= maximum;
+            }
+
+            float inverse = 1f / direction;
+            float first = (minimum - origin) * inverse;
+            float second = (maximum - origin) * inverse;
+            if (first > second)
+            {
+                float swap = first;
+                first = second;
+                second = swap;
+            }
+
+            entry = Mathf.Max(entry, first);
+            exit = Mathf.Min(exit, second);
+            return entry <= exit;
         }
     }
 }

@@ -7,6 +7,7 @@
 - Added large mandatory gates and shootable-versus-divide choices.
 - Added moving-world gate timeline and gate target-priority integration.
 - Added gate reset, value/resolution events, and tests.
+- Fixed projectile occlusion so foreground enemies shield shootable gates.
 
 ## 0.5.0-dev
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using ProjectGatefront.Data;
 using ProjectGatefront.Gameplay;
+using ProjectGatefront.Gameplay.Combat;
 using ProjectGatefront.Gameplay.Enemies;
 using ProjectGatefront.Gameplay.Gates;
 using ProjectGatefront.Gameplay.Squad;
@@ -16,6 +17,160 @@ namespace ProjectGatefront.Tests.PlayMode
 {
     public sealed class GateGameplayTests
     {
+        [UnityTest]
+        public IEnumerator ForegroundEnemy_ShieldsGateUntilKilled()
+        {
+            yield return LoadGameplay();
+            GateDirector gates = Object.FindFirstObjectByType<GateDirector>();
+            ContinuousEnemyDirector enemies =
+                Object.FindFirstObjectByType<ContinuousEnemyDirector>();
+            GameplayBootstrap bootstrap =
+                Object.FindFirstObjectByType<GameplayBootstrap>();
+            SquadWeaponSystem weapons =
+                Object.FindFirstObjectByType<SquadWeaponSystem>();
+            SquadController squad = Object.FindFirstObjectByType<SquadController>();
+            PrepareIsolatedGateRun(bootstrap, gates, enemies, weapons);
+            GateController gate = SpawnGateAhead(gates, squad, 12f);
+            EnemyController enemy = enemies.EnemyPool.Spawn(
+                enemies.LevelConfig.NormalEnemy,
+                new Vector3(gate.WorldX, 0f, gate.WorldZ - 4f),
+                -1);
+            int startingValue = gate.CurrentValue;
+            Vector3 origin = gate.AimPosition - (Vector3.forward * 8f);
+
+            Projectile first = FireDirectlyAtGate(weapons, gate, origin);
+            first.Tick(0.35f);
+
+            Assert.That(enemy.State, Is.EqualTo(EnemyRuntimeState.Dying));
+            Assert.That(enemy.CurrentHealth, Is.Zero);
+            Assert.That(gate.CurrentValue, Is.EqualTo(startingValue));
+            Assert.That(first.IsLaunched, Is.False);
+
+            Projectile second = FireDirectlyAtGate(weapons, gate, origin);
+            second.Tick(0.35f);
+
+            Assert.That(gate.CurrentValue, Is.EqualTo(startingValue + 1));
+            Assert.That(second.IsLaunched, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator MovingEnemyEnteringProjectilePath_ShieldsGate()
+        {
+            yield return LoadGameplay();
+            GateDirector gates = Object.FindFirstObjectByType<GateDirector>();
+            ContinuousEnemyDirector enemies =
+                Object.FindFirstObjectByType<ContinuousEnemyDirector>();
+            GameplayBootstrap bootstrap =
+                Object.FindFirstObjectByType<GameplayBootstrap>();
+            SquadWeaponSystem weapons =
+                Object.FindFirstObjectByType<SquadWeaponSystem>();
+            SquadController squad = Object.FindFirstObjectByType<SquadController>();
+            PrepareIsolatedGateRun(bootstrap, gates, enemies, weapons);
+            GateController gate = SpawnGateAhead(gates, squad, 12f);
+            EnemyController enemy = enemies.EnemyPool.Spawn(
+                enemies.LevelConfig.NormalEnemy,
+                new Vector3(gate.WorldX + 2f, 0f, gate.WorldZ - 4f),
+                -1);
+            int startingValue = gate.CurrentValue;
+            Vector3 origin = gate.AimPosition - (Vector3.forward * 8f);
+            Projectile projectile = FireDirectlyAtGate(weapons, gate, origin);
+            projectile.Tick(0.05f);
+            Vector3 enteredPath = enemy.transform.position;
+            enteredPath.x = gate.WorldX;
+            enemy.transform.position = enteredPath;
+
+            projectile.Tick(0.2f);
+
+            Assert.That(enemy.State, Is.EqualTo(EnemyRuntimeState.Dying));
+            Assert.That(gate.CurrentValue, Is.EqualTo(startingValue));
+            Assert.That(projectile.IsLaunched, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator EnemyBesideProjectilePath_DoesNotShieldGate()
+        {
+            yield return LoadGameplay();
+            GateDirector gates = Object.FindFirstObjectByType<GateDirector>();
+            ContinuousEnemyDirector enemies =
+                Object.FindFirstObjectByType<ContinuousEnemyDirector>();
+            GameplayBootstrap bootstrap =
+                Object.FindFirstObjectByType<GameplayBootstrap>();
+            SquadWeaponSystem weapons =
+                Object.FindFirstObjectByType<SquadWeaponSystem>();
+            SquadController squad = Object.FindFirstObjectByType<SquadController>();
+            PrepareIsolatedGateRun(bootstrap, gates, enemies, weapons);
+            GateController gate = SpawnGateAhead(gates, squad, 12f);
+            EnemyController enemy = enemies.EnemyPool.Spawn(
+                enemies.LevelConfig.NormalEnemy,
+                new Vector3(gate.WorldX + 2f, 0f, gate.WorldZ - 4f),
+                -1);
+            int startingValue = gate.CurrentValue;
+            Vector3 origin = gate.AimPosition - (Vector3.forward * 8f);
+            Projectile projectile = FireDirectlyAtGate(weapons, gate, origin);
+
+            projectile.Tick(0.35f);
+
+            Assert.That(enemy.State, Is.EqualTo(EnemyRuntimeState.Approaching));
+            Assert.That(gate.CurrentValue, Is.EqualTo(startingValue + 1));
+            Assert.That(projectile.IsLaunched, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator MultipleShooters_BlockOnlyRelevantGateCorridors()
+        {
+            yield return LoadGameplay();
+            GateDirector gates = Object.FindFirstObjectByType<GateDirector>();
+            ContinuousEnemyDirector enemies =
+                Object.FindFirstObjectByType<ContinuousEnemyDirector>();
+            GameplayBootstrap bootstrap =
+                Object.FindFirstObjectByType<GameplayBootstrap>();
+            SquadWeaponSystem weapons =
+                Object.FindFirstObjectByType<SquadWeaponSystem>();
+            SquadController squad = Object.FindFirstObjectByType<SquadController>();
+            PrepareIsolatedGateRun(bootstrap, gates, enemies, weapons);
+            GateController gate = SpawnGateAhead(gates, squad, 12f);
+            var activeWeapons = new List<WeaponController>();
+            weapons.CopyActiveWeaponsTo(activeWeapons);
+            float leftmostX = float.PositiveInfinity;
+            WeaponController leftmostWeapon = null;
+            for (int index = 0; index < activeWeapons.Count; index++)
+            {
+                float shooterX = activeWeapons[index].FirePoint.position.x;
+                if (shooterX < leftmostX)
+                {
+                    leftmostX = shooterX;
+                    leftmostWeapon = activeWeapons[index];
+                }
+            }
+
+            float enemyZ = gate.WorldZ - 4f;
+            Vector3 shooterOrigin = leftmostWeapon.FirePoint.position;
+            float corridorFraction = (enemyZ - shooterOrigin.z)
+                / (gate.AimPosition.z - shooterOrigin.z);
+            float blockerX = Mathf.Lerp(
+                shooterOrigin.x,
+                gate.WorldX,
+                corridorFraction);
+            EnemyController blocker = enemies.EnemyPool.Spawn(
+                enemies.LevelConfig.NormalEnemy,
+                new Vector3(blockerX, 0f, enemyZ),
+                -1);
+            weapons.SetCombatEnabled(true);
+            yield return null;
+
+            int enemyTargets = 0;
+            int gateTargets = 0;
+            for (int index = 0; index < activeWeapons.Count; index++)
+            {
+                ITargetable target = activeWeapons[index].CurrentTarget;
+                enemyTargets += ReferenceEquals(target, blocker) ? 1 : 0;
+                gateTargets += ReferenceEquals(target, gate) ? 1 : 0;
+            }
+
+            Assert.That(enemyTargets, Is.GreaterThan(0));
+            Assert.That(gateTargets, Is.GreaterThan(0));
+        }
+
         [UnityTest]
         public IEnumerator ProjectileChargesGateOnce_ThenCrossingAppliesOnce()
         {
@@ -138,6 +293,48 @@ namespace ProjectGatefront.Tests.PlayMode
         {
             yield return SceneManager.LoadSceneAsync("02_Gameplay", LoadSceneMode.Single);
             yield return new WaitForSeconds(0.2f);
+        }
+
+        private static void PrepareIsolatedGateRun(
+            GameplayBootstrap bootstrap,
+            GateDirector gates,
+            ContinuousEnemyDirector enemies,
+            SquadWeaponSystem weapons)
+        {
+            bootstrap.SetMovementEnabled(false);
+            enemies.ResetCombat();
+            enemies.SetSpawnSchedulingEnabled(false);
+            weapons.SetCombatEnabled(false);
+            gates.enabled = false;
+            gates.SetTimelineEnabled(false);
+        }
+
+        private static GateController SpawnGateAhead(
+            GateDirector gates,
+            SquadController squad,
+            float distance)
+        {
+            gates.SpawnEncounterNow(0);
+            var active = new List<GateController>();
+            gates.CopyActiveGatesTo(active);
+            Assert.That(active.Count, Is.EqualTo(1));
+            GateController gate = active[0];
+            Vector3 position = gate.transform.position;
+            position.z = squad.CombatContactZ + distance;
+            gate.transform.position = position;
+            return gate;
+        }
+
+        private static Projectile FireDirectlyAtGate(
+            SquadWeaponSystem weapons,
+            GateController gate,
+            Vector3 origin)
+        {
+            Vector3 direction = (gate.AimPosition - origin).normalized;
+            return weapons.ProjectilePool.Acquire(
+                origin,
+                direction,
+                weapons.CurrentRuntimeStats);
         }
     }
 }

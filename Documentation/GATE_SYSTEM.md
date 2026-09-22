@@ -38,6 +38,23 @@ nonurgent enemies. Critically close unclaimed enemies remain first. Multiple
 shooters may focus a gate; gate impacts do not create one-hit reservations.
 Outside alignment, normal one-hit enemy distribution continues.
 
+## Projectile occlusion and foreground enemy shielding
+
+Projectile sweeps resolve the physical entry point of every valid target volume
+along the travelled segment. Only the nearest intersection is processed. A gate
+uses its thin visible panel as an axis-aligned hit volume instead of a wide sphere,
+so its collision surface does not extend toward the squad. If an enemy and gate
+surface are within 0.01 world units, the enemy wins deterministically and visually
+shields the gate.
+
+Target selection uses the same segment corridor concept per shooter. An unreserved
+enemy between that soldier and an aligned gate is selected before the gate, while
+soldiers in clear lanes may keep charging it. If an enemy moves into a gate-bound
+projectile after launch, the next swept segment still hits the enemy first. Once
+the foreground lane clears, gate targeting and one-projectile/one-value charging
+resume. Current rifle projectiles stop on their first hit; future intentional
+penetration can process later intersections without changing nearest-hit ordering.
+
 The prototype schedule crosses at virtual distances approximately 60, 140, 230,
 330, and 430, with starting values -10 through -50. Encounters 3 and 5 are
 paired with ÷2; the others are wide mandatory gates. `ContinuousEnemyDirector`

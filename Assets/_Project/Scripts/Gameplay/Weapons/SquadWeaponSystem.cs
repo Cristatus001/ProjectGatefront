@@ -341,7 +341,8 @@ namespace ProjectGatefront.Gameplay.Weapons
             currentTarget = null;
             for (int index = 0; index < activeWeapons.Count; index++)
             {
-                ITargetable selected = FindPreferredTarget();
+                ITargetable selected = FindPreferredTarget(
+                    activeWeapons[index].FirePoint.position);
                 activeWeapons[index].SetTarget(selected);
                 if (selected != null)
                 {
@@ -355,10 +356,32 @@ namespace ProjectGatefront.Gameplay.Weapons
             }
         }
 
-        private ITargetable FindPreferredTarget()
+        private ITargetable FindPreferredTarget(Vector3 shooterOrigin)
         {
-            ITargetable emergency = null;
             IShootableGate alignedGate = null;
+            float gateDistanceSquared = float.PositiveInfinity;
+            for (int index = 0; index < targetCandidates.Count; index++)
+            {
+                if (!(targetCandidates[index] is IShootableGate gate)
+                    || !gate.CanReceiveFire(
+                        shooterOrigin.x,
+                        squadController.CombatContactZ))
+                {
+                    continue;
+                }
+
+                float distanceSquared = Vector3.SqrMagnitude(
+                    gate.AimPosition - shooterOrigin);
+                if (distanceSquared < gateDistanceSquared)
+                {
+                    gateDistanceSquared = distanceSquared;
+                    alignedGate = gate;
+                }
+            }
+
+            ITargetable foregroundBlocker = null;
+            float blockerDistance = float.PositiveInfinity;
+            ITargetable emergency = null;
             ITargetable selected = null;
             int bestScore = int.MaxValue;
             for (int index = 0; index < targetCandidates.Count; index++)
@@ -369,21 +392,29 @@ namespace ProjectGatefront.Gameplay.Weapons
                     continue;
                 }
 
-                if (candidate is IShootableGate gate)
+                if (candidate is IShootableGate)
                 {
-                    if (alignedGate == null && gate.CanReceiveFire(
-                            squadController.transform.position.x,
-                            squadController.CombatContactZ))
-                    {
-                        alignedGate = gate;
-                    }
-
                     continue;
                 }
 
                 assignmentsThisPass.TryGetValue(candidate, out int assigned);
                 targetReservations.TryGetValue(candidate, out int reserved);
                 int score = (reserved > 0 ? 1000 : 0) + assigned;
+                if (alignedGate != null
+                    && reserved == 0
+                    && assigned == 0
+                    && TargetingMath.IsTargetInProjectileCorridor(
+                        shooterOrigin,
+                        alignedGate.AimPosition,
+                        candidate.AimPosition,
+                        runtimeStats.ProjectileRadius + candidate.TargetRadius,
+                        out float corridorDistance)
+                    && corridorDistance < blockerDistance)
+                {
+                    blockerDistance = corridorDistance;
+                    foregroundBlocker = candidate;
+                }
+
                 if (IsCriticallyClose(candidate.AimPosition.z,
                         squadController.CombatContactZ)
                     && reserved == 0 && assigned == 0 && emergency == null)
@@ -398,7 +429,10 @@ namespace ProjectGatefront.Gameplay.Weapons
                 }
             }
 
-            return emergency ?? (ITargetable)alignedGate ?? selected;
+            return foregroundBlocker
+                ?? emergency
+                ?? (ITargetable)alignedGate
+                ?? selected;
         }
 
         private void HandleProjectileCommitted(

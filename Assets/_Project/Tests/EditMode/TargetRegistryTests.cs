@@ -1,11 +1,12 @@
 using NUnit.Framework;
 using System.Collections.Generic;
 using ProjectGatefront.Gameplay.Combat;
+using ProjectGatefront.Gameplay.Gates;
 using UnityEngine;
 
 namespace ProjectGatefront.Tests
 {
-    public sealed class RegistryTestTarget : MonoBehaviour, ITargetable
+    public sealed class RegistryTestTarget : MonoBehaviour, ITargetable, IDamageable
     {
         public bool Targetable = true;
         public float Radius = 0.5f;
@@ -17,6 +18,46 @@ namespace ProjectGatefront.Tests
         public float TargetRadius => Radius;
 
         public bool IsTargetable => Targetable;
+
+        public DamageResult ApplyDamage(float damage)
+        {
+            return new DamageResult(damage, 0f, true);
+        }
+    }
+
+    public sealed class RegistryTestGate : MonoBehaviour,
+        IShootableGate,
+        IProjectileHitVolume
+    {
+        public Transform TargetTransform => transform;
+        public Vector3 AimPosition => transform.position;
+        public float TargetRadius => 2f;
+        public bool IsTargetable => true;
+
+        public bool CanReceiveFire(float squadX, float squadContactZ)
+        {
+            return true;
+        }
+
+        public bool ApplyProjectileHit()
+        {
+            return true;
+        }
+
+        public bool TryGetProjectileIntersection(
+            Vector3 segmentStart,
+            Vector3 segmentEnd,
+            float projectileRadius,
+            out float normalizedDistance)
+        {
+            float padding = Mathf.Max(0f, projectileRadius);
+            return TargetingMath.SegmentIntersectsAabb(
+                segmentStart,
+                segmentEnd,
+                AimPosition,
+                new Vector3(2f + padding, 2f + padding, 0.05f + padding),
+                out normalizedDistance);
+        }
     }
 
     public sealed class TargetRegistryTests
@@ -41,6 +82,13 @@ namespace ProjectGatefront.Tests
                     FindObjectsSortMode.None))
             {
                 Object.DestroyImmediate(target.gameObject);
+            }
+            foreach (RegistryTestGate gate in
+                Object.FindObjectsByType<RegistryTestGate>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None))
+            {
+                Object.DestroyImmediate(gate.gameObject);
             }
         }
 
@@ -98,6 +146,62 @@ namespace ProjectGatefront.Tests
         }
 
         [Test]
+        public void SegmentHit_EnemyBeforeGate_SelectsEnemy()
+        {
+            RegistryTestTarget enemy = CreateTarget(
+                "Enemy", new Vector3(0f, 0f, 5f));
+            RegistryTestGate gate = CreateGate(
+                "Gate", new Vector3(0f, 0f, 10f));
+            registry.Register(gate);
+            registry.Register(enemy);
+
+            Assert.That(TryHit(out ITargetable hit), Is.True);
+            Assert.That(hit, Is.SameAs(enemy));
+        }
+
+        [Test]
+        public void SegmentHit_GateBeforeEnemy_SelectsGate()
+        {
+            RegistryTestGate gate = CreateGate(
+                "Gate", new Vector3(0f, 0f, 5f));
+            RegistryTestTarget enemy = CreateTarget(
+                "Enemy", new Vector3(0f, 0f, 10f));
+            registry.Register(enemy);
+            registry.Register(gate);
+
+            Assert.That(TryHit(out ITargetable hit), Is.True);
+            Assert.That(hit, Is.SameAs(gate));
+        }
+
+        [Test]
+        public void SegmentHit_EnemyOutsideCorridor_SelectsGate()
+        {
+            RegistryTestTarget enemy = CreateTarget(
+                "Enemy", new Vector3(2f, 0f, 5f));
+            RegistryTestGate gate = CreateGate(
+                "Gate", new Vector3(0f, 0f, 10f));
+            registry.Register(gate);
+            registry.Register(enemy);
+
+            Assert.That(TryHit(out ITargetable hit), Is.True);
+            Assert.That(hit, Is.SameAs(gate));
+        }
+
+        [Test]
+        public void SegmentHit_ApproximatelyEqualSurface_PrefersEnemy()
+        {
+            RegistryTestTarget enemy = CreateTarget(
+                "Enemy", new Vector3(0f, 0f, 5f));
+            RegistryTestGate gate = CreateGate(
+                "Gate", new Vector3(0f, 0f, 4.545f));
+            registry.Register(enemy);
+            registry.Register(gate);
+
+            Assert.That(TryHit(out ITargetable hit), Is.True);
+            Assert.That(hit, Is.SameAs(enemy));
+        }
+
+        [Test]
         public void CandidateCollection_ReturnsNearestTargetsInOrder()
         {
             RegistryTestTarget far = CreateTarget("Far", new Vector3(0f, 0f, 9f));
@@ -128,6 +232,25 @@ namespace ProjectGatefront.Tests
             var gameObject = new GameObject(name);
             gameObject.transform.position = position;
             return gameObject.AddComponent<RegistryTestTarget>();
+        }
+
+        private static RegistryTestGate CreateGate(
+            string name,
+            Vector3 position)
+        {
+            var gameObject = new GameObject(name);
+            gameObject.transform.position = position;
+            return gameObject.AddComponent<RegistryTestGate>();
+        }
+
+        private bool TryHit(out ITargetable hit)
+        {
+            return registry.TryFindFirstSegmentHit(
+                Vector3.zero,
+                Vector3.forward * 15f,
+                0f,
+                null,
+                out hit);
         }
     }
 }

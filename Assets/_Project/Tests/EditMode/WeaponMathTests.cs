@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using ProjectGatefront.Data;
+using ProjectGatefront.Gameplay.Combat;
 using ProjectGatefront.Gameplay.Weapons;
 using UnityEngine;
 
@@ -7,6 +8,24 @@ namespace ProjectGatefront.Tests
 {
     public sealed class WeaponMathTests
     {
+        [Test]
+        public void ProjectileCorridor_UsesPhysicalSphereEntryDistance()
+        {
+            Assert.That(TargetingMath.IsTargetInProjectileCorridor(
+                Vector3.zero,
+                Vector3.forward * 10f,
+                Vector3.forward * 5f,
+                0.5f,
+                out float entry), Is.True);
+            Assert.That(entry, Is.EqualTo(0.45f).Within(0.0001f));
+            Assert.That(TargetingMath.IsTargetInProjectileCorridor(
+                Vector3.zero,
+                Vector3.forward * 10f,
+                new Vector3(2f, 0f, 5f),
+                0.5f,
+                out _), Is.False);
+        }
+
         [Test]
         public void FireInterval_UsesShotsPerSecondAndRejectsInvalidValues()
         {

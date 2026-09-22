@@ -8,7 +8,9 @@ namespace ProjectGatefront.Gameplay.Gates
 {
     [DisallowMultipleComponent]
     [RequireComponent(typeof(WorldContentCarrier))]
-    public sealed class GateController : MonoBehaviour, IShootableGate
+    public sealed class GateController : MonoBehaviour,
+        IShootableGate,
+        IProjectileHitVolume
     {
         private const float FeedbackDuration = 0.12f;
         private static readonly string[] SignedLabels = BuildSignedLabels();
@@ -167,6 +169,25 @@ namespace ProjectGatefront.Gameplay.Gates
             RefreshVisual();
             GateValueChanged?.Invoke(previous, CurrentValue);
             return true;
+        }
+
+        public bool TryGetProjectileIntersection(
+            Vector3 segmentStart,
+            Vector3 segmentEnd,
+            float projectileRadius,
+            out float normalizedDistance)
+        {
+            float padding = Mathf.Max(0f, projectileRadius);
+            var extents = new Vector3(
+                halfWidth + padding,
+                1.275f + padding,
+                0.09f + padding);
+            return TargetingMath.SegmentIntersectsAabb(
+                segmentStart,
+                segmentEnd,
+                AimPosition,
+                extents,
+                out normalizedDistance);
         }
 
         public int LockValue()
